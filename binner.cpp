@@ -69,6 +69,7 @@ int NSIDE;
 int NPIX ;
 PlanckDataManager* dm;
 bool DEBUG = true;
+int NSTOKES = 3;
 
 string dataPath, pointingPath;
 dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
@@ -99,7 +100,7 @@ log(Comm.MyPID(), format("Number of elements: %d") % NumElements);
 Epetra_Map Map(NumElements, 0, Comm);
 
 NPIX = 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
-Epetra_BlockMap PixMap(NPIX,3,0,Comm);
+Epetra_BlockMap PixMap(NPIX,NSTOKES,0,Comm);
 
 int * MyGlobalElements = Map.MyGlobalElements();
 int * PixMyGlobalElements = PixMap.MyGlobalElements();
@@ -122,20 +123,41 @@ log(Comm.MyPID(),"SUM MAP");
 Epetra_Vector summap(PixMap);
 P.Multiply1(true,y,summap); //SUMMAP = Pt y
 
-if (Comm.MyPID()==0){
-Epetra_SerialDenseMatrix *Prow;
-int RowDim, NumBlockEntries;
-int *BlockIndices;
-
-P.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndices);
-P.ExtractEntryView(Prow);
-cout << *Prow << endl;
-
-}
-
 //cout << P << endl;
 //log(Comm.MyPID(),"/////////////// Creating M pix x pix");
-//Epetra_CrsMatrix invM(Copy, PixMap,3);
+Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
+
+int BlockIndices[1];
+Epetra_SerialDenseMatrix *Prow;
+int RowDim, NumBlockEntries;
+int *BlockIndicesOut;
+int err;
+Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
+
+for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
+
+    P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+    P.ExtractEntryView(Prow);
+    cout << *Prow << endl;
+    err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 1.);
+            if (err != 0) {
+                cout << "Error in computing Mpp, error code:" << err << endl;
+                }
+    cout << Mpp << endl;
+    BlockIndices[0] = i;
+    invM.BeginSumIntoGlobalValues(i, 1, BlockIndicesOut);
+    err = invM.SubmitBlockEntry(Mpp);
+            if (err != 0) {
+                cout << "Error in inserting values in M, error code:" << err << endl;
+                }
+
+    err = invM.EndSubmitEntries();
+            if (err != 0) {
+                cout << "Error in ending submit entries in M, error code:" << err << endl;
+                }
+
+}
+//invM.GlobalAssemble();
 
 //log(Comm.MyPID(),"M-M");
 //int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);
