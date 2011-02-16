@@ -135,7 +135,7 @@ int *BlockIndicesOut;
 int err;
 int Values[NSTOKES * NSTOKES];
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
-cout << invM << endl;
+
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
@@ -161,7 +161,9 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
                 }
 
 }
-//invM.GlobalAssemble();
+invM.GlobalAssemble();
+
+cout << invM << endl;
 
 //log(Comm.MyPID(),"M-M");
 //int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);
