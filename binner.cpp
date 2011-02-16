@@ -125,28 +125,32 @@ P.Multiply1(true,y,summap); //SUMMAP = Pt y
 
 //cout << P << endl;
 //log(Comm.MyPID(),"/////////////// Creating M pix x pix");
-Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
+Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
+//Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
 
 int BlockIndices[1];
 Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
 int err;
+int Values[NSTOKES * NSTOKES];
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
-
+cout << invM << endl;
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     P.ExtractEntryView(Prow);
-    cout << *Prow << endl;
+    //cout << *Prow << endl;
     err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 1.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
-    cout << Mpp << endl;
-    BlockIndices[0] = i;
-    invM.BeginSumIntoGlobalValues(i, 1, BlockIndicesOut);
-    err = invM.SubmitBlockEntry(Mpp);
+    //cout << Mpp << endl;
+    BlockIndices[0] = 0;
+    //invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
+    invM.BeginSumIntoGlobalValues(0, 1, BlockIndices);
+
+    err = invM.SubmitBlockEntry(Mpp.A(), Mpp.LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
                 cout << "Error in inserting values in M, error code:" << err << endl;
                 }
