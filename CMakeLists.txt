@@ -21,11 +21,14 @@ add_library(PlanckDataManager PlanckDataManager.cpp)
 add_library(read_fits_lib read_fits_lib.c)
 
 add_executable(binner binner.cpp)
+add_executable(testFEVbr testFEVbr.cpp)
 set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
+set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 if ($ENV{NERSC_HOST} STREQUAL carver)
     target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
+    target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
 else($ENV{NERSC_HOST} STREQUAL carver)
-    target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
+    target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 # TEST

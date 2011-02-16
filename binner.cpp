@@ -91,7 +91,7 @@ dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 //
 int NumElements;
 if (DEBUG) {
-    NumElements = 30;
+    NumElements = 11;
 } else {
     NumElements = dm->getDatasetLength();
 }
@@ -129,7 +129,7 @@ Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 //Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
 
 int BlockIndices[1];
-BlockIndices[0] = 10;
+BlockIndices[0] = 2;
 Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
