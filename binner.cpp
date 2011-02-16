@@ -68,7 +68,7 @@ Epetra_Time time(Comm);
 int NSIDE;
 int NPIX ;
 PlanckDataManager* dm;
-bool DEBUG = false;
+bool DEBUG = true;
 
 string dataPath, pointingPath;
 dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
@@ -90,7 +90,7 @@ dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 //
 int NumElements;
 if (DEBUG) {
-    NumElements = 800;
+    NumElements = 80;
 } else {
     NumElements = dm->getDatasetLength();
 }
@@ -122,6 +122,18 @@ log(Comm.MyPID(),"SUM MAP");
 Epetra_Vector summap(PixMap);
 P.Multiply1(true,y,summap); //SUMMAP = Pt y
 
+if (Comm.MyPID()==0){
+Epetra_SerialDenseMatrix *Prow;
+int RowDim, NumBlockEntries;
+int *BlockIndices;
+
+P.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndices);
+P.ExtractEntryView(Prow);
+cout << *Prow << endl;
+
+}
+
+//cout << P << endl;
 //log(Comm.MyPID(),"/////////////// Creating M pix x pix");
 //Epetra_CrsMatrix invM(Copy, PixMap,3);
 
