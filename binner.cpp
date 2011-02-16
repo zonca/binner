@@ -91,7 +91,7 @@ dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 //
 int NumElements;
 if (DEBUG) {
-    NumElements = 80;
+    NumElements = 30;
 } else {
     NumElements = dm->getDatasetLength();
 }
@@ -123,12 +123,13 @@ log(Comm.MyPID(),"SUM MAP");
 Epetra_Vector summap(PixMap);
 P.Multiply1(true,y,summap); //SUMMAP = Pt y
 
-//cout << P << endl;
+cout << P << endl;
 //log(Comm.MyPID(),"/////////////// Creating M pix x pix");
 Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 //Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
 
 int BlockIndices[1];
+BlockIndices[0] = 10;
 Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
@@ -136,28 +137,33 @@ int err;
 int Values[NSTOKES * NSTOKES];
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
 
+int debugPID = 1;
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     P.ExtractEntryView(Prow);
-    //cout << *Prow << endl;
-    err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 1.);
+    if (Comm.MyPID() == debugPID) {
+    cout << *Prow << endl;
+    cout << "BlockIndicesOut[0]:" << BlockIndicesOut[0] << endl;
+    }
+    err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
-    //cout << Mpp << endl;
-    BlockIndices[0] = 0;
+    if (Comm.MyPID() == debugPID) {
+    cout << Mpp << endl;
+    }
     //invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
-    invM.BeginSumIntoGlobalValues(0, 1, BlockIndices);
+    invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
     err = invM.SubmitBlockEntry(Mpp.A(), Mpp.LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
-                cout << "Error in inserting values in M, error code:" << err << endl;
+                cout << "PID:" << Comm.MyPID() << "Error in inserting values in M, error code:" << err << endl;
                 }
 
     err = invM.EndSubmitEntries();
             if (err != 0) {
-                cout << "Error in ending submit entries in M, error code:" << err << endl;
+                cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
                 }
 
 }
