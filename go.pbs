@@ -1,0 +1,15 @@
+#PBS -S /bin/bash
+#PBS -A TG-ASC090080
+#PBS -l size=12
+#PBS -l walltime=00:03:00
+#PBS -N binner
+#PBS -q debug
+#PBS -m abe
+#PBS -o binner.oe
+#PBS -j oe
+#PBS -V
+
+ulimit -s unlimited
+
+cd $PBS_O_WORKDIR
+time aprun -n 4 ./test_binner > log.txt

@@ -1,0 +1,23 @@
+add_executable(test_test test_test.cpp)
+add_test(test_test test_test)
+target_link_libraries(test_test )
+add_dependencies(check test_test)
+
+add_executable(test_read_fits_lib test_read_fits_lib.cpp)
+add_test(test_read_fits_lib test_read_fits_lib)
+target_link_libraries(test_read_fits_lib read_fits_lib cfitsio)
+add_dependencies(check test_read_fits_lib)
+
+add_executable(test_datamanager test_datamanager.cpp)
+add_test(test_datamanager test_datamanager)
+target_link_libraries(test_datamanager DataManager read_fits_lib cfitsio)
+add_dependencies(check test_datamanager)
+
+add_executable(test_planckdatamanager test_planckdatamanager.cpp)
+add_test(test_planckdatamanager test_planckdatamanager)
+target_link_libraries(test_planckdatamanager PlanckDataManager read_fits_lib cfitsio)
+add_dependencies(check test_planckdatamanager)
+
+add_executable(test_creatematrices test_creatematrices.cpp)
+target_link_libraries(test_creatematrices DataManager trilinos_epetra read_fits_lib cfitsio)
+add_dependencies(check test_creatematrices)
