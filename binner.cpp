@@ -136,8 +136,24 @@ int *BlockIndicesOut;
 int err;
 int Values[NSTOKES * NSTOKES];
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
+Epetra_SerialDenseMatrix * Zero;
 
+log(Comm.MyPID(),"Initializing M");
+
+for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
+    BlockIndices[0] = PixMyGlobalElements[i];
+    Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+    invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
+    err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
+            if (err != 0) {
+                cout << "PID:" << Comm.MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
+                }
+    err = invM.EndSubmitEntries();
+    }
+
+BlockIndices[0] = 2;
 int debugPID = 1;
+log(Comm.MyPID(),"Creating M");
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
@@ -167,10 +183,15 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
                 }
 
 }
+
+log(Comm.MyPID(),"GlobalAssemble");
 invM.GlobalAssemble();
+log(Comm.MyPID(),"GlobalAssemble DONE");
 
-cout << invM << endl;
+log(Comm.MyPID(),"Computing RCOND and Inverting");
+for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
 
+}
 //log(Comm.MyPID(),"M-M");
 //int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);
 //log(Comm.MyPID(),"M-M END");

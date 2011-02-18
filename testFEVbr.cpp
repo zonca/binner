@@ -53,7 +53,22 @@ Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
 Mpp[0][0] = 1.;
 cout << Mpp << endl;
 
+Epetra_SerialDenseMatrix * Zero;
+
+for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
+    BlockIndices[0] = PixMyGlobalElements[i];
+    Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+    invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
+    err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
+            if (err != 0) {
+                cout << "PID:" << Comm.MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
+                }
+    err = invM.EndSubmitEntries();
+    }
+
 int debugPID = 1;
+BlockIndices[0] = 2;
+cout << invM << endl;
 
 int NumHits = 2*Comm.MyPID() + 5;
 for( int i=0 ; i<NumHits; ++i ) { //loop on local pointing
