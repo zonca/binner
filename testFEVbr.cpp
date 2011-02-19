@@ -33,9 +33,6 @@ int NSIDE = 1;
 int NPIX ;
 int NSTOKES = 3;
 
-int NumElements;
-NumElements = 11;
-
 NPIX = 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
 Epetra_BlockMap PixMap(NPIX,NSTOKES,0,Comm);
 
@@ -46,7 +43,6 @@ Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 
 int BlockIndices[1];
 BlockIndices[0] = 2;
-Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int err;
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
@@ -66,7 +62,6 @@ for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     err = invM.EndSubmitEntries();
     }
 
-int debugPID = 1;
 BlockIndices[0] = 2;
 cout << invM << endl;
 
@@ -89,6 +84,22 @@ for( int i=0 ; i<NumHits; ++i ) { //loop on local pointing
 invM.GlobalAssemble();
 
 cout << invM << endl;
+
+if (Comm.MyPID() == 0) {
+
+Epetra_SerialDenseMatrix * blockM;
+int * BlockIndicesBlock;
+invM.BeginExtractMyBlockRowView(2, RowDim, NumBlockEntries, BlockIndicesBlock);
+invM.ExtractEntryView(blockM);
+
+    cout << *blockM << endl;
+    cout << "*blockM[0][0]" << endl;
+    cout << *blockM[0][0] << endl;
+    cout << "*blockM[0][1]" << endl;
+    cout << *blockM[0][1] << endl;
+    cout << "*blockM[1][1]" << endl;
+    cout << *blockM[1][1] << endl;
+}
 
 #ifdef HAVE_MPI
   MPI_Finalize();
