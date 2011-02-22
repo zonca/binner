@@ -75,18 +75,23 @@ bool DEBUG = true;
 int NSTOKES = 3;
 
 string dataPath, pointingPath;
-dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
+
+dataPath = "/home/zonca/p/testdata/lfi_ops_dx4";
+//dataPath = "global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
+
 
 if (DEBUG) {
-    pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1_nest";
+        pointingPath = "/home/zonca/p/testdata/dx4_1_nest";
+//            pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1_nest";
+
     NSIDE = 1;
 } else {
     pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1024_nest";
     NSIDE = 1024;
 }
 //const list<string> channels = list_of( "ch1q" )( "ch1u" );
-const list<string> channels = list_of( "LFI28M" );
-//const list<string> channels = list_of("LFI27M" )( "LFI27S" )( "LFI28M" )( "LFI28S" );
+//const list<string> channels = list_of( "LFI28M" );
+const list<string> channels = list_of("LFI27M" )( "LFI27S" )( "LFI28M" )( "LFI28S" );
 dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 
 //MAPS
@@ -94,7 +99,7 @@ dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 //
 int NumElements;
 if (DEBUG) {
-    NumElements = 11;
+    NumElements = 1000;
 } else {
     NumElements = dm->getDatasetLength();
 }
@@ -137,7 +142,7 @@ Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
 int err;
-Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
+Epetra_SerialDenseMatrix * Mpp;
 Epetra_SerialDenseMatrix * Zero;
 
 log(Comm.MyPID(),"Initializing M");
@@ -145,6 +150,13 @@ log(Comm.MyPID(),"Initializing M");
 for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     BlockIndices[0] = PixMyGlobalElements[i];
     Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+    //Zero->Random();
+    //for (int r=0; r<3; ++r) {
+    //    for (int c=0; c<3; ++c) {
+    //        (*Zero)(r,c) = 1.1;
+    //    }
+    //}
+    cout << *Zero << endl;
     invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
     err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
             if (err != 0) {
@@ -164,17 +176,27 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
     //cout << *Prow << endl;
     //cout << "BlockIndicesOut[0]:" << BlockIndicesOut[0] << endl;
     //}
-    err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 0.);
+    //
+    Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+
+
+    //Mpp->Random();
+    err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
-    //if (Comm.MyPID() == debugPID) {
-    //cout << Mpp << endl;
-    //}
+
+    if (Comm.MyPID() == 0) {
+    cout << "_________________  " << i << endl;
+    cout << *Mpp << endl;
+    //(*Mpp)(0,0) = 1;
+    //(*Mpp)(1,1) = .12;
+    //(*Mpp)(2,2) = .3;
+    }
     invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
     //invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
-    err = invM.SubmitBlockEntry(Mpp.A(), Mpp.LDA(), NSTOKES, NSTOKES); //FIXME check order
+    err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
                 cout << "PID:" << Comm.MyPID() << "Error in inserting values in M, error code:" << err << endl;
                 }
@@ -183,6 +205,7 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
             if (err != 0) {
                 cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
                 }
+    delete Mpp;
 
 }
 
@@ -194,7 +217,7 @@ log(Comm.MyPID(),"Computing RCOND and Inverting");
 Epetra_SerialDenseSolver * SSolver;
 
 Epetra_Vector rcond(PixMap);
-//double rcond_blockM;
+double rcond_blockM;
 Epetra_SerialDenseMatrix * blockM;
 
 //cout << invM << endl;
@@ -202,33 +225,37 @@ Epetra_SerialDenseMatrix * blockM;
 if (Comm.MyPID() == 0) {
 int i=0;
 
-    invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+    invM.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndicesOut);
     invM.ExtractEntryView(blockM);
     //if (Comm.MyPID() == debugPID) {
     //    cout << *blockM << endl;
     //}
-    if ((*blockM)[0][0] > 0) {
+    //if ((*blockM)[0][0] > 0) {
+        cout << *blockM << endl;
         SSolver = new Epetra_SerialDenseSolver();
         //prova[row][col] = *blockM[row][col];
         SSolver->SetMatrix(*blockM);
-        //err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
-        //        if (err != 0) {
-        //            cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << endl;
-        //            }
+        err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
+                if (err != 0) {
+                    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << endl;
+                    }
+
+        cout << rcond_blockM << endl;
+        rcond[3*i]=rcond_blockM;
+
+        if (rcond_blockM > 1e-6) {
         err = SSolver->Invert();
                 if (err != 0) {
                     cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
                     }
-        //cout << SSolver->RCOND() << endl;
-        //rcond[3*i]=rcond_blockM;
-    }
-//}
+        cout << *blockM << endl;
+        }
 }
 
 Comm.Barrier();
-cout << invM << endl;
+//cout << invM << endl;
 
-//cout << rcond << endl;
+cout << rcond << endl;
 //cout << invM << endl;
 //log(Comm.MyPID(),"M-M");
 //int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);

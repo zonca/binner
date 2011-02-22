@@ -13,6 +13,12 @@ elseif ($ENV{NERSC_HOST} STREQUAL hopper2)
     include_directories("../include" "./include" "/opt/cray/trilinos/10.6.2.0/PGI/include/" "/usr/common/usg/boost/1.45" "/usr/common/usg/cfitsio/3.26/include")
 
     link_directories("/opt/cray/trilinos/10.6.2.0/PGI/lib" "/usr/common/usg/cfitsio/3.26/lib")
+set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
+set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
+
+elseif ($ENV{NERSC_HOST} STREQUAL canopus)
+
+    include_directories("../include" "./include" "/usr/include/trilinos/" "/usr/include/openmpi")
 
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
@@ -22,14 +28,15 @@ add_library(read_fits_lib read_fits_lib.c)
 
 add_executable(binner binner.cpp)
 add_executable(testFEVbr testFEVbr.cpp)
-set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
-set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 if ($ENV{NERSC_HOST} STREQUAL carver)
     target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
-else($ENV{NERSC_HOST} STREQUAL hopper2)
+elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
+elseif($ENV{NERSC_HOST} STREQUAL canopus)
+    target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext)
+    target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 # TEST
