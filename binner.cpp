@@ -99,7 +99,7 @@ dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
 //
 int NumElements;
 if (DEBUG) {
-    NumElements = 1000;
+    NumElements = 10000;
 } else {
     NumElements = dm->getDatasetLength();
 }
@@ -156,13 +156,14 @@ for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     //        (*Zero)(r,c) = 1.1;
     //    }
     //}
-    cout << *Zero << endl;
+    //cout << *Zero << endl;
     invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
     err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
             if (err != 0) {
                 cout << "PID:" << Comm.MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
                 }
     err = invM.EndSubmitEntries();
+    delete Zero;
     }
 
 BlockIndices[0] = 2;
@@ -186,13 +187,13 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-    if (Comm.MyPID() == 0) {
-    cout << "_________________  " << i << endl;
-    cout << *Mpp << endl;
-    //(*Mpp)(0,0) = 1;
-    //(*Mpp)(1,1) = .12;
-    //(*Mpp)(2,2) = .3;
-    }
+    //if (Comm.MyPID() == 0) {
+    //cout << "_________________  " << i << endl;
+    //cout << *Mpp << endl;
+    ////(*Mpp)(0,0) = 1;
+    ////(*Mpp)(1,1) = .12;
+    ////(*Mpp)(2,2) = .3;
+    //}
     invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
     //invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
@@ -222,6 +223,8 @@ Epetra_SerialDenseMatrix * blockM;
 
 //cout << invM << endl;
 
+Epetra_Vector binmap(PixMap);
+
 if (Comm.MyPID() == 0) {
 int i=0;
 
@@ -243,17 +246,26 @@ int i=0;
         cout << rcond_blockM << endl;
         rcond[3*i]=rcond_blockM;
 
-        if (rcond_blockM > 1e-6) {
+        if (rcond_blockM > 1e-5) {
         err = SSolver->Invert();
                 if (err != 0) {
                     cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
                     }
         cout << *blockM << endl;
+        } else {
+            for (int r=0; r<3; ++r) {
+                for (int c=0; c<3; ++c) {
+                    (*blockM)(r,c) = 0.;
+                }
+            }
         }
+
 }
 
 Comm.Barrier();
 //cout << invM << endl;
+
+invM.Apply(summap, binmap);
 
 cout << rcond << endl;
 //cout << invM << endl;
@@ -278,11 +290,10 @@ MapWriter mapwriter(PixMap, Comm, NPIX);
 //log(Comm.MyPID(),"inverting");
 //
 //invertM(PixMap, invM);
-//Epetra_Vector binmap(PixMap);
-//invM.Multiply(false, summap, binmap); //B = inv(M) * Pt
 //
 ////Write map to file on proc 0
-//mapwriter.write(binmap, "binmap.fits");
+mapwriter.write(binmap, "binmap.fits");
+mapwriter.write(rcond, "rcondmap.fits");
 mapwriter.write(summap, "summap.fits");
 
 #ifdef HAVE_MPI
