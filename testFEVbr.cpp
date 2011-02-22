@@ -95,8 +95,8 @@ invM.ExtractEntryView(blockM);
     cout << *blockM << endl;
     cout << "*blockM[0][0]" << endl;
     cout << *blockM[0][0] << endl;
-    cout << "*blockM[0][1]" << endl;
-    cout << *blockM[0][1] << endl;
+    cout << "*blockM[0][4]" << endl;
+    cout << *blockM[0][4] << endl;
     cout << "*blockM[1][1]" << endl;
     cout << *blockM[1][1] << endl;
 }

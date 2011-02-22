@@ -25,6 +25,9 @@
 #include "Epetra_DataAccess.h"
 #include "Epetra_Time.h"
 #include "Epetra_FEVbrMatrix.h"
+#include <Epetra_SerialDenseSolver.h>
+
+
 
 //#include "AztecOO.h"
 
@@ -123,7 +126,7 @@ log(Comm.MyPID(),"SUM MAP");
 Epetra_Vector summap(PixMap);
 P.Multiply1(true,y,summap); //SUMMAP = Pt y
 
-cout << P << endl;
+//cout << P << endl;
 //log(Comm.MyPID(),"/////////////// Creating M pix x pix");
 Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 //Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
@@ -134,7 +137,6 @@ Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
 int err;
-int Values[NSTOKES * NSTOKES];
 Epetra_SerialDenseMatrix Mpp(NSTOKES, NSTOKES);
 Epetra_SerialDenseMatrix * Zero;
 
@@ -152,25 +154,25 @@ for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     }
 
 BlockIndices[0] = 2;
-int debugPID = 1;
+int debugPID = 0;
 log(Comm.MyPID(),"Creating M");
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     P.ExtractEntryView(Prow);
-    if (Comm.MyPID() == debugPID) {
-    cout << *Prow << endl;
-    cout << "BlockIndicesOut[0]:" << BlockIndicesOut[0] << endl;
-    }
+    //if (Comm.MyPID() == debugPID) {
+    //cout << *Prow << endl;
+    //cout << "BlockIndicesOut[0]:" << BlockIndicesOut[0] << endl;
+    //}
     err = Mpp.Multiply('T','N', 1., *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
-    if (Comm.MyPID() == debugPID) {
-    cout << Mpp << endl;
-    }
-    //invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
-    invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
+    //if (Comm.MyPID() == debugPID) {
+    //cout << Mpp << endl;
+    //}
+    invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
+    //invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
     err = invM.SubmitBlockEntry(Mpp.A(), Mpp.LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
@@ -189,9 +191,45 @@ invM.GlobalAssemble();
 log(Comm.MyPID(),"GlobalAssemble DONE");
 
 log(Comm.MyPID(),"Computing RCOND and Inverting");
-for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
+Epetra_SerialDenseSolver * SSolver;
 
+Epetra_Vector rcond(PixMap);
+//double rcond_blockM;
+Epetra_SerialDenseMatrix * blockM;
+
+//cout << invM << endl;
+
+if (Comm.MyPID() == 0) {
+int i=0;
+
+    invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+    invM.ExtractEntryView(blockM);
+    //if (Comm.MyPID() == debugPID) {
+    //    cout << *blockM << endl;
+    //}
+    if ((*blockM)[0][0] > 0) {
+        SSolver = new Epetra_SerialDenseSolver();
+        //prova[row][col] = *blockM[row][col];
+        SSolver->SetMatrix(*blockM);
+        //err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
+        //        if (err != 0) {
+        //            cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << endl;
+        //            }
+        err = SSolver->Invert();
+                if (err != 0) {
+                    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+                    }
+        //cout << SSolver->RCOND() << endl;
+        //rcond[3*i]=rcond_blockM;
+    }
+//}
 }
+
+Comm.Barrier();
+cout << invM << endl;
+
+//cout << rcond << endl;
+//cout << invM << endl;
 //log(Comm.MyPID(),"M-M");
 //int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);
 //log(Comm.MyPID(),"M-M END");
