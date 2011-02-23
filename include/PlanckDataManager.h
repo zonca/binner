@@ -29,6 +29,14 @@ class PlanckDataManager
         double getDatasetLength(void) {
             return fileLengths.back();
         };
+        void setDatasetLength(double length) {
+            fileLengths.push_back(length);
+        };
+        int NSIDE;
+        int NSTOKES;
+        double getNPIX(void){
+            return 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
+        }
 
 };
 
