@@ -13,8 +13,10 @@ struct setUp {
     string dataPath, pointingPath;
     list<string> onech, twoch;
     setUp() {
-                dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
-                pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1024_nest";
+                //dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
+                dataPath = "/home/zonca/p/testdata/lfi_ops_dx4";
+                //pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1024_nest";
+                pointingPath = "/home/zonca/p/testdata/dx4_1024_nest";
                 onech = list_of( "LFI27S" );
                 twoch = list_of( "LFI28M" )( "LFI28S" );
              }

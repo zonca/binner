@@ -12,11 +12,14 @@
 #include "Epetra_SerialComm.h"
 #endif
 #include "Epetra_Map.h"
+#include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
 #include "Epetra_Export.h"
 #include "Epetra_DataAccess.h"
 #include "Epetra_CrsMatrix.h"
 #include "Epetra_VbrMatrix.h"
+#include "Epetra_FEVbrMatrix.h"
+#include <Epetra_SerialDenseSolver.h>
 
 #include "PlanckDataManager.h"
 
@@ -90,39 +93,112 @@ int createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMana
     return 0;
 }
 
-int invertM(const Epetra_Map& PixMap, Epetra_CrsMatrix& invM) {
+int initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
-    double * Values = new double[2];
-    double * ValuesSecRow = new double[2];
-    int * Indices = new int[2];
-    int NumMyElements = PixMap.NumMyElements();
-    int * MyGlobalElements = new int [NumMyElements];
-    PixMap.MyGlobalElements( MyGlobalElements );
+    int BlockIndices[1];
+    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    int err;
+    Epetra_SerialDenseMatrix * Zero;
 
-    int error;
-    double det;
-    for(unsigned int i=0; i<PixMap.NumMyElements(); i=i+2) {
-        if (invM.NumMyEntries(i) > 0 ){
-            Indices[0] = MyGlobalElements[i];
-            Indices[1] = MyGlobalElements[i+1];
+    for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
+        BlockIndices[0] = PixMyGlobalElements[i];
+        Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+        invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
+        err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
+                if (err != 0) {
+                    cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
+                    }
+        err = invM.EndSubmitEntries();
+        delete Zero;
+    }
+}
 
-                det = invM[i][0] * invM[i+1][1] - invM[i][1] * invM[i+1][0];
-                //cout << det << endl;
-                Values[0] = invM[i+1][1] / det;
-                Values[1] = -1. * invM[i][1] / det;
-                ValuesSecRow[0] = -1 * invM[i+1][0] / det;
-                ValuesSecRow[1] = invM[i][0] / det;
+int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
-                error = invM.ReplaceGlobalValues(MyGlobalElements[i], 2, Values, Indices);
+    Epetra_SerialDenseMatrix * Mpp;
+    int BlockIndices[1];
+    int err;
 
-                if (error != 0){
-                    cout << "error:" << error << "-i" << i << "-Elem[" << MyGlobalElements[i] << ",0]=" <<  invM[i][0] << "Values:" << Values[0] << endl;
+    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    Epetra_SerialDenseMatrix *Prow;
+    int RowDim, NumBlockEntries;
+    int *BlockIndicesOut;
+    for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
+
+        P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        P.ExtractEntryView(Prow);
+
+        BlockIndices[0] = PixMyGlobalElements[BlockIndicesOut[0]];
+
+        Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
+
+        err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
+            if (err != 0) {
+                cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-                error = invM.ReplaceGlobalValues(MyGlobalElements[i+1], 2, ValuesSecRow, Indices);
-        }
-        
+        invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
+
+        err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
+                if (err != 0) {
+                    cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
+                    }
+
+        err = invM.EndSubmitEntries();
+                if (err != 0) {
+                    cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
+                    }
+        delete Mpp;
+
     }
-    return 0;
+
+}
+
+int invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
+
+    Epetra_SerialDenseSolver * SSolver;
+    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+
+    double rcond_blockM;
+    Epetra_SerialDenseMatrix * blockM;
+
+    int RCondIndices[1];
+    double RCondValues[1];
+
+    int RowDim, NumBlockEntries;
+    int *BlockIndicesOut;
+    for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
+
+        invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        invM.ExtractEntryView(blockM);
+
+        SSolver = new Epetra_SerialDenseSolver();
+        SSolver->SetMatrix(*blockM);
+        //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
+        if ((*blockM)(0,0) > 0) {
+            rcond_blockM = PixMyGlobalElements[i];
+            //err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
+            //if (err != 0) {
+            //    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+            //}
+            //if (rcond_blockM > 1e-5) {
+            //    err = SSolver->Invert();
+            //    if (err != 0) {
+            //        cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+            //    }
+            //} else {
+            //    for (int r=0; r<3; ++r) {
+            //        for (int c=0; c<3; ++c) {
+            //            (*blockM)(r,c) = 0.;
+            //        }
+            //    }
+            //}
+        } else {
+            rcond_blockM = -1;
+        }
+        RCondValues[0] = rcond_blockM;
+        RCondIndices[0] = PixMyGlobalElements[i];
+        rcond.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
+    }
 }
 #endif
