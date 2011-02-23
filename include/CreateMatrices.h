@@ -14,9 +14,6 @@
 #include "Epetra_Map.h"
 #include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
-#include "Epetra_Export.h"
-#include "Epetra_DataAccess.h"
-#include "Epetra_CrsMatrix.h"
 #include "Epetra_VbrMatrix.h"
 #include "Epetra_FEVbrMatrix.h"
 #include <Epetra_SerialDenseSolver.h>
@@ -24,22 +21,6 @@
 #include "PlanckDataManager.h"
 
 using namespace std;
-
-int createF(const Epetra_Map& Map, const Epetra_Map& BaselinesMap, int BaselineLength, Epetra_CrsMatrix& F) {
-
-    double one = 1.0;
-    int baselinenum;
-
-    int * MyGlobalElements = Map.MyGlobalElements();
-    for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
-        
-        baselinenum = MyGlobalElements[i] / BaselineLength;
-        F.InsertGlobalValues(MyGlobalElements[i], 1, &one, &baselinenum);
-    }
-
-    F.FillComplete(BaselinesMap, Map);
-    return 0;
-}
 
 int createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataManager* dm, Epetra_VbrMatrix& P) {
 
@@ -75,6 +56,7 @@ int createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMana
             Values[0] = 1.;
             Values[1] = qw[i];
             Values[2] = uw[i];
+
             err = P.SubmitBlockEntry(Values, 1, 1, 3);
             if (err != 0) {
                 cout << "Error in submitting entries for P, error code:" << err << endl;
@@ -116,7 +98,6 @@ int initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) 
 int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     Epetra_SerialDenseMatrix * Mpp;
-    int BlockIndices[1];
     int err;
 
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
@@ -128,7 +109,10 @@ int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epe
         P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
         P.ExtractEntryView(Prow);
 
-        BlockIndices[0] = PixMyGlobalElements[BlockIndicesOut[0]];
+        if (Map.Comm().MyPID() == 0) {
+            cout << *Prow << endl;
+            cout <<  BlockIndicesOut[0] << endl;
+        }
 
         Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
@@ -137,7 +121,7 @@ int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epe
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-        invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
+        invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
                 if (err != 0) {
@@ -162,7 +146,7 @@ int invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vect
     double rcond_blockM;
     Epetra_SerialDenseMatrix * blockM;
 
-    int RCondIndices[1];
+    int RCondIndices[1], err;
     double RCondValues[1];
 
     int RowDim, NumBlockEntries;
@@ -176,23 +160,23 @@ int invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vect
         SSolver->SetMatrix(*blockM);
         //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
         if ((*blockM)(0,0) > 0) {
-            rcond_blockM = PixMyGlobalElements[i];
-            //err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
-            //if (err != 0) {
-            //    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
-            //}
-            //if (rcond_blockM > 1e-5) {
-            //    err = SSolver->Invert();
-            //    if (err != 0) {
-            //        cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
-            //    }
-            //} else {
-            //    for (int r=0; r<3; ++r) {
-            //        for (int c=0; c<3; ++c) {
-            //            (*blockM)(r,c) = 0.;
-            //        }
-            //    }
-            //}
+            //rcond_blockM = PixMyGlobalElements[i];
+            err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
+            if (err != 0) {
+                cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+            }
+            if (rcond_blockM > 1e-5) {
+                err = SSolver->Invert();
+                if (err != 0) {
+                    cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+                }
+            } else {
+                for (int r=0; r<blockM->M(); ++r) {
+                    for (int c=0; c<blockM->N(); ++c) {
+                        (*blockM)(r,c) = 0.;
+                    }
+                }
+            }
         } else {
             rcond_blockM = -1;
         }

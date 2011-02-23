@@ -19,5 +19,5 @@ target_link_libraries(test_planckdatamanager PlanckDataManager read_fits_lib cfi
 add_dependencies(check test_planckdatamanager)
 
 add_executable(test_creatematrices test_creatematrices.cpp)
-target_link_libraries(test_creatematrices DataManager trilinos_epetra read_fits_lib cfitsio PlanckDataManager)
+target_link_libraries(test_creatematrices PlanckDataManager trilinos_epetra read_fits_lib cfitsio )
 add_dependencies(check test_creatematrices)

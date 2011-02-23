@@ -15,8 +15,9 @@
 #include "Epetra_CrsMatrix.h"
 
 #include "CreateMatrices.h"
-#include "DataManager.h"
+#include "PlanckDataManager.h"
 #include "TestHelpers.h"
+#include "Epetra_FEVbrMatrix.h"
 
 //____________________________________________________________________________//
 
@@ -40,12 +41,17 @@ struct MPIsetUp {
 };
 
 struct setUp {
-    int NumElements;
+    int NumElements, NPIX, NSTOKES, MyPID;
     Epetra_Map* Map;
+    Epetra_BlockMap* PixMap;
     setUp() {
-                NumElements = 8; 
+                NumElements = 21; 
+                NPIX = 5;
+                NSTOKES = 3;
                 Epetra_MpiComm Comm(MPI_COMM_WORLD);
+                MyPID = Comm.MyPID();
                 Map = new Epetra_Map(NumElements, 0, Comm);
+                PixMap = new Epetra_BlockMap(NPIX, 3, 0, Comm);
              }
     ~setUp()
              { }
@@ -58,15 +64,89 @@ BOOST_FIXTURE_TEST_SUITE(test_creatematrices_suite, setUp)
 BOOST_AUTO_TEST_CASE( test_numelements )
 {
     BOOST_CHECK_EQUAL( Map->NumGlobalElements(), NumElements);
+    BOOST_CHECK_EQUAL( PixMap->NumGlobalElements(), NPIX);
 }
 
-BOOST_AUTO_TEST_CASE( test_inverm )
+BOOST_AUTO_TEST_CASE( test_initm )
 {
-    Epetra_CrsMatrix M(Copy, *Map,2);
-    createFakeM(*Map, M);
-    //cout << M;
-    invertM(*Map, M);
-    cout << M;
+    int RowDim, NumBlockEntries;
+    int * BlockIndicesOut;
+    Epetra_SerialDenseMatrix * blockM;
+    Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
+    initM(*PixMap, NSTOKES, invM);
+    invM.GlobalAssemble();
+    Epetra_SerialDenseMatrix Zero(NSTOKES, NSTOKES);
+
+    BOOST_CHECK_EQUAL( invM.NumGlobalBlockCols(), NPIX);
+    BOOST_CHECK_EQUAL( invM.NumGlobalBlockRows(), NPIX);
+    for( int i=0 ; i<PixMap->NumMyElements(); ++i ) { //loop on local pixel
+        invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        invM.ExtractEntryView(blockM);
+        BOOST_CHECK_EQUAL( *blockM, Zero);
+    }
 }
 
+BOOST_AUTO_TEST_CASE( test_createm )
+{
+    Epetra_VbrMatrix P(Copy,*Map,1);
+    createFakeP(*Map, *PixMap, P);
+    //cout << P << endl;
+
+    Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
+    initM(*PixMap, NSTOKES, invM);
+    createM(*PixMap, *Map, P, NSTOKES, invM);
+    invM.GlobalAssemble();
+
+    int RowDim, NumBlockEntries;
+    int * BlockIndicesOut;
+    Epetra_SerialDenseMatrix * blockM;
+
+    Epetra_IntSerialDenseVector hits(PixMap->NumMyElements());
+
+    if (MyPID == 0) {
+        hits[0]=4;
+        hits[1]=8;
+        hits[2]=6;
+    } else {
+        hits[0]=3;
+        hits[1]=0;
+    }
+
+    for( int i=0 ; i<PixMap->NumMyElements(); ++i ) { //loop on local pixel
+        invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        invM.ExtractEntryView(blockM);
+        BOOST_CHECK_EQUAL( (*blockM)(0,0), hits[i]);
+    }
+}
+
+BOOST_AUTO_TEST_CASE( test_invertm )
+{
+    Epetra_VbrMatrix P(Copy,*Map,1);
+    createFakeP(*Map, *PixMap, P);
+    Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
+    initM(*PixMap, NSTOKES, invM);
+    createM(*PixMap, *Map, P, NSTOKES, invM);
+    invM.GlobalAssemble();
+
+    Epetra_Vector rcond(*PixMap);
+    cout << invM << endl;
+    invertM(*PixMap, invM, rcond);
+    cout << invM << endl;
+    PixMap->Comm().Barrier();
+
+    int RowDim, NumBlockEntries;
+    int * BlockIndicesOut;
+    Epetra_SerialDenseMatrix * blockM;
+
+    invM.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndicesOut);
+    invM.ExtractEntryView(blockM);
+
+    if (MyPID == 0) {
+        BOOST_CHECK_CLOSE( (*blockM)(0,0), 0.67217016, 0.003);
+        BOOST_CHECK_CLOSE( (*blockM)(0,1), -0.17267239, 0.003);
+        BOOST_CHECK_CLOSE( (*blockM)(1,0), -0.17267239, 0.003);
+        BOOST_CHECK_CLOSE( (*blockM)(1,1), 0.56853723, 0.003);
+    }
+
+}
 BOOST_AUTO_TEST_SUITE_END()
