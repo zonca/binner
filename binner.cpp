@@ -71,13 +71,13 @@ Epetra_Time time(Comm);
 int NSIDE;
 int NPIX ;
 PlanckDataManager* dm;
-bool DEBUG = true;
+bool DEBUG = false;
 int NSTOKES = 3;
 
 string dataPath, pointingPath;
 
 //dataPath = "/home/zonca/p/testdata/lfi_ops_dx4";
-dataPath = "global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
+dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
 
 
 if (DEBUG) {
@@ -89,7 +89,6 @@ if (DEBUG) {
     pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1024_nest";
     NSIDE = 1024;
 }
-//const list<string> channels = list_of( "ch1q" )( "ch1u" );
 //const list<string> channels = list_of( "LFI28M" );
 const list<string> channels = list_of("LFI27M" )( "LFI27S" )( "LFI28M" )( "LFI28S" );
 dm = new PlanckDataManager(92, 93, channels, dataPath, pointingPath);
@@ -137,7 +136,6 @@ Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 //Epetra_FEVbrMatrix invM(Copy, PixMap, PixMap, 1);
 
 int BlockIndices[1];
-BlockIndices[0] = 2;
 Epetra_SerialDenseMatrix *Prow;
 int RowDim, NumBlockEntries;
 int *BlockIndicesOut;
@@ -150,13 +148,6 @@ log(Comm.MyPID(),"Initializing M");
 for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     BlockIndices[0] = PixMyGlobalElements[i];
     Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
-    //Zero->Random();
-    //for (int r=0; r<3; ++r) {
-    //    for (int c=0; c<3; ++c) {
-    //        (*Zero)(r,c) = 1.1;
-    //    }
-    //}
-    //cout << *Zero << endl;
     invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
     err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
             if (err != 0) {
@@ -166,36 +157,19 @@ for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
     delete Zero;
     }
 
-BlockIndices[0] = 2;
-int debugPID = 0;
-log(Comm.MyPID(),"Creating M");
 for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     P.ExtractEntryView(Prow);
-    //if (Comm.MyPID() == debugPID) {
-    //cout << *Prow << endl;
-    //cout << "BlockIndicesOut[0]:" << BlockIndicesOut[0] << endl;
-    //}
-    //
+
     Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
-
-    //Mpp->Random();
     err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-    //if (Comm.MyPID() == 0) {
-    //cout << "_________________  " << i << endl;
-    //cout << *Mpp << endl;
-    ////(*Mpp)(0,0) = 1;
-    ////(*Mpp)(1,1) = .12;
-    ////(*Mpp)(2,2) = .3;
-    //}
     invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
-    //invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
     err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
@@ -213,45 +187,37 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 log(Comm.MyPID(),"GlobalAssemble");
 invM.GlobalAssemble();
 log(Comm.MyPID(),"GlobalAssemble DONE");
+cout << time.ElapsedTime() << endl;
 
 log(Comm.MyPID(),"Computing RCOND and Inverting");
 Epetra_SerialDenseSolver * SSolver;
 
-Epetra_Vector rcond(PixMap);
 double rcond_blockM;
 Epetra_SerialDenseMatrix * blockM;
 
-//cout << invM << endl;
-
 Epetra_Vector binmap(PixMap);
+Epetra_Vector rcond(PixMap);
+int RCondIndices[1];
+double RCondValues[1];
 
-if (Comm.MyPID() == 0) {
-int i=0;
+for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
 
-    invM.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndicesOut);
+    invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     invM.ExtractEntryView(blockM);
-    //if (Comm.MyPID() == debugPID) {
-    //    cout << *blockM << endl;
-    //}
-    //if ((*blockM)[0][0] > 0) {
-        cout << *blockM << endl;
-        SSolver = new Epetra_SerialDenseSolver();
-        //prova[row][col] = *blockM[row][col];
-        SSolver->SetMatrix(*blockM);
+
+    SSolver = new Epetra_SerialDenseSolver();
+    SSolver->SetMatrix(*blockM);
+    //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
+    if ((*blockM)(0,0) > 0) {
         err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
-                if (err != 0) {
-                    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << endl;
-                    }
-
-        cout << rcond_blockM << endl;
-        rcond[3*i]=rcond_blockM;
-
+        if (err != 0) {
+            cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+        }
         if (rcond_blockM > 1e-5) {
-        err = SSolver->Invert();
-                if (err != 0) {
-                    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
-                    }
-        cout << *blockM << endl;
+            err = SSolver->Invert();
+            if (err != 0) {
+                cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+            }
         } else {
             for (int r=0; r<3; ++r) {
                 for (int c=0; c<3; ++c) {
@@ -259,42 +225,29 @@ int i=0;
                 }
             }
         }
-
+    } else {
+        rcond_blockM = -1;
+    }
+    RCondValues[0] = rcond_blockM;
+    RCondIndices[0] = PixMyGlobalElements[i];
+    rcond.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
 }
 
-Comm.Barrier();
-//cout << invM << endl;
+cout << time.ElapsedTime() << endl;
 
+Comm.Barrier();
+
+log(Comm.MyPID(),"BINMAP");
 invM.Apply(summap, binmap);
 
-cout << rcond << endl;
-//cout << invM << endl;
-//log(Comm.MyPID(),"M-M");
-//int err = EpetraExt::MatrixMatrix::Multiply(P, true, P, false, invM);
-//log(Comm.MyPID(),"M-M END");
-//cout << time.ElapsedTime() << endl;
-//if (err != 0) {
-//    cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
-//    return(err);
-//}
-//
-//log(Comm.MyPID(),"invM");
-//Epetra_Vector diag(PixMap);
-//
-//invM.ExtractDiagonalCopy(diag);
-//
-//log(Comm.MyPID(),"Exporting HITMAP");
-//
+log(Comm.MyPID(),"Writing MAPS");
+
 MapWriter mapwriter(PixMap, Comm, NPIX);
-//mapwriter.write(diag, "hitmap.fits");
-//log(Comm.MyPID(),"inverting");
-//
-//invertM(PixMap, invM);
-//
 ////Write map to file on proc 0
-mapwriter.write(binmap, "binmap.fits");
+//mapwriter.write(binmap, "binmap.fits");
 mapwriter.write(rcond, "rcondmap.fits");
 mapwriter.write(summap, "summap.fits");
+cout << time.ElapsedTime() << endl;
 
 #ifdef HAVE_MPI
   MPI_Finalize();
