@@ -6,7 +6,7 @@
 
 using namespace boost::assign; // bring 'list_of()' into scope
 
-int readParameterFile(string parameterFilename, PlanckDataManager * dm) {
+int readParameterFile(string parameterFilename, PlanckDataManager *& dm) {
 
     //TODO read parameter file
 

@@ -90,6 +90,8 @@ mapwriter.write(rcond, "rcondmap.fits");
 mapwriter.write(summap, "summap.fits");
 cout << time.ElapsedTime() << endl;
 
+cout << rcond << endl;
+
 #ifdef HAVE_MPI
   MPI_Finalize();
 #endif
