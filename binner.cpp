@@ -162,6 +162,8 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
     P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
     P.ExtractEntryView(Prow);
 
+    BlockIndices[0] = PixMyGlobalElements[BlockIndicesOut[0]];
+
     Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
     err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
@@ -169,7 +171,7 @@ for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-    invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
+    invM.BeginSumIntoGlobalValues(BlockIndices[0], 1, BlockIndices);
 
     err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
             if (err != 0) {
@@ -209,22 +211,23 @@ for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
     SSolver->SetMatrix(*blockM);
     //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
     if ((*blockM)(0,0) > 0) {
-        err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
-        if (err != 0) {
-            cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
-        }
-        if (rcond_blockM > 1e-5) {
-            err = SSolver->Invert();
-            if (err != 0) {
-                cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
-            }
-        } else {
-            for (int r=0; r<3; ++r) {
-                for (int c=0; c<3; ++c) {
-                    (*blockM)(r,c) = 0.;
-                }
-            }
-        }
+        rcond_blockM = PixMyGlobalElements[i];
+        //err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
+        //if (err != 0) {
+        //    cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+        //}
+        //if (rcond_blockM > 1e-5) {
+        //    err = SSolver->Invert();
+        //    if (err != 0) {
+        //        cout << "PID:" << Comm.MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+        //    }
+        //} else {
+        //    for (int r=0; r<3; ++r) {
+        //        for (int c=0; c<3; ++c) {
+        //            (*blockM)(r,c) = 0.;
+        //        }
+        //    }
+        //}
     } else {
         rcond_blockM = -1;
     }
