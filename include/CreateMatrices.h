@@ -101,12 +101,15 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     Epetra_SerialDenseMatrix *Prow;
     int RowDim, NumBlockEntries;
-    int *BlockIndicesOut;
+    int * LocalPix;
+    int * GlobalPix;
+    GlobalPix = new int[1];
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
-        P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
         P.ExtractEntryView(Prow);
-
+        GlobalPix[0] = P.GCID(LocalPix[0]);
+        //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
         Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
         err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
@@ -114,7 +117,8 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-        invM.BeginSumIntoGlobalValues(BlockIndicesOut[0], 1, BlockIndicesOut);
+        invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix);
+        //invM.BeginSumIntoLocalValues(GlobalPix[0], 1, GlobalPix);
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
                 if (err != 0) {

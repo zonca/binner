@@ -14,12 +14,12 @@ void readParameterFile(string parameterFilename, PlanckDataManager *& dm) {
     int NSIDE;
     string dataPath, pointingPath;
 
-    //dataPath = "/home/zonca/p/testdata/lfi_ops_dx4";
     dataPath = "/global/homes/z/zonca/planck/data/mission/lfi_ops_dx4";
+    dataPath = "/home/zonca/p/testdata/lfi_ops_dx4";
 
     if (DEBUG) {
-        //pointingPath = "/home/zonca/p/testdata/dx4_1_nest";
         pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1_nest";
+        pointingPath = "/home/zonca/p/testdata/dx4_1_nest";
         NSIDE = 1;
     } else {
         pointingPath = "/global/homes/z/zonca/p/pointing/dx4_1024_nest";

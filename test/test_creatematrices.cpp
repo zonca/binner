@@ -90,7 +90,9 @@ BOOST_AUTO_TEST_CASE( test_createm )
 {
     Epetra_VbrMatrix P(Copy,*Map,1);
     createFakeP(*Map, *PixMap, P);
-    //cout << P << endl;
+    cout << P << endl;
+    cout << "Ind Global " << P.IndicesAreGlobal() << endl;
+    cout << "Ind Loc " << P.IndicesAreLocal() << endl;
 
     Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
     initM(*PixMap, NSTOKES, invM);
@@ -104,12 +106,12 @@ BOOST_AUTO_TEST_CASE( test_createm )
     Epetra_IntSerialDenseVector hits(PixMap->NumMyElements());
 
     if (MyPID == 0) {
-        hits[0]=4;
+        hits[0]=1;
         hits[1]=8;
-        hits[2]=6;
+        hits[2]=0;
     } else {
-        hits[0]=3;
-        hits[1]=0;
+        hits[0]=6;
+        hits[1]=6;
     }
 
     for( int i=0 ; i<PixMap->NumMyElements(); ++i ) { //loop on local pixel
@@ -119,34 +121,34 @@ BOOST_AUTO_TEST_CASE( test_createm )
     }
 }
 
-BOOST_AUTO_TEST_CASE( test_invertm )
-{
-    Epetra_VbrMatrix P(Copy,*Map,1);
-    createFakeP(*Map, *PixMap, P);
-    Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
-    initM(*PixMap, NSTOKES, invM);
-    createM(*PixMap, *Map, P, NSTOKES, invM);
-    invM.GlobalAssemble();
-
-    Epetra_Vector rcond(*PixMap);
-    cout << invM << endl;
-    invertM(*PixMap, invM, rcond);
-    cout << invM << endl;
-    PixMap->Comm().Barrier();
-
-    int RowDim, NumBlockEntries;
-    int * BlockIndicesOut;
-    Epetra_SerialDenseMatrix * blockM;
-
-    invM.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndicesOut);
-    invM.ExtractEntryView(blockM);
-
-    if (MyPID == 0) {
-        BOOST_CHECK_CLOSE( (*blockM)(0,0), 0.67217016, 0.003);
-        BOOST_CHECK_CLOSE( (*blockM)(0,1), -0.17267239, 0.003);
-        BOOST_CHECK_CLOSE( (*blockM)(1,0), -0.17267239, 0.003);
-        BOOST_CHECK_CLOSE( (*blockM)(1,1), 0.56853723, 0.003);
-    }
-
-}
+//BOOST_AUTO_TEST_CASE( test_invertm )
+//{
+//    Epetra_VbrMatrix P(Copy,*Map,1);
+//    createFakeP(*Map, *PixMap, P);
+//    Epetra_FEVbrMatrix invM(Copy, *PixMap, 1);
+//    initM(*PixMap, NSTOKES, invM);
+//    createM(*PixMap, *Map, P, NSTOKES, invM);
+//    invM.GlobalAssemble();
+//
+//    Epetra_Vector rcond(*PixMap);
+//    cout << invM << endl;
+//    invertM(*PixMap, invM, rcond);
+//    cout << invM << endl;
+//    PixMap->Comm().Barrier();
+//
+//    int RowDim, NumBlockEntries;
+//    int * BlockIndicesOut;
+//    Epetra_SerialDenseMatrix * blockM;
+//
+//    invM.BeginExtractMyBlockRowView(0, RowDim, NumBlockEntries, BlockIndicesOut);
+//    invM.ExtractEntryView(blockM);
+//
+//    if (MyPID == 0) {
+//        BOOST_CHECK_CLOSE( (*blockM)(0,0), 0.67217016, 0.003);
+//        BOOST_CHECK_CLOSE( (*blockM)(0,1), -0.17267239, 0.003);
+//        BOOST_CHECK_CLOSE( (*blockM)(1,0), -0.17267239, 0.003);
+//        BOOST_CHECK_CLOSE( (*blockM)(1,1), 0.56853723, 0.003);
+//    }
+//
+//}
 BOOST_AUTO_TEST_SUITE_END()

@@ -41,9 +41,9 @@ int createFakeP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, Epetra_Vbr
     Epetra_IntSerialDenseVector pointing(Map.NumMyElements());
     pointing[0]=3;
     pointing[1]=1;
-    pointing[2]=2;
-    pointing[3]=2;
-    pointing[4]=2;
+    pointing[2]=4;
+    pointing[3]=4;
+    pointing[4]=4;
     pointing[5]=1;
     pointing[6]=1;
     pointing[7]=1;
