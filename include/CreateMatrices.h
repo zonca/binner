@@ -131,7 +131,7 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
 
 }
 
-int createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_FEVbrMatrix& invM) {
+void createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_FEVbrMatrix& invM) {
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     int RCondIndices[1], err;
     double RCondValues[1];
