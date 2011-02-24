@@ -22,7 +22,7 @@
 
 using namespace std;
 
-int createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataManager* dm, Epetra_VbrMatrix& P) {
+void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataManager* dm, Epetra_VbrMatrix& P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
     int NumMyElements = Map.NumMyElements();
@@ -71,11 +71,9 @@ int createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMana
     }
 
     P.FillComplete(PixMap, Map);
-    //P.FillComplete();
-    return 0;
 }
 
-int initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int BlockIndices[1];
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
@@ -95,7 +93,7 @@ int initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) 
     }
 }
 
-int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     Epetra_SerialDenseMatrix * Mpp;
     int err;
@@ -151,7 +149,7 @@ int createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_FE
     }
 }
 
-int invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
+void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
 
     Epetra_SerialDenseSolver * SSolver;
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
