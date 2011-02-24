@@ -47,6 +47,56 @@ BOOST_AUTO_TEST_CASE( test_getdata )
     BOOST_CHECK_CLOSE(data[9], 0.001514075488, 1e-6);
 }
 
+BOOST_AUTO_TEST_CASE( test_getdata_twoch )
+{
+    double* data;
+    data = new double[10];
+    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData("data", 2812782, 10, data);
+    BOOST_CHECK_CLOSE(data[0], -0.000420763029471, 1e-6);
+    BOOST_CHECK_CLOSE(data[9], -0.001445570012144, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE( test_getqw_twoch )
+{
+    double* data;
+    data = new double[10];
+    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData("qw", 2812782, 10, data);
+    BOOST_CHECK_CLOSE(data[0], 0.40361079, 1e-5);
+    BOOST_CHECK_CLOSE(data[9], 0.34403955, 1e-5);
+}
+
+BOOST_AUTO_TEST_CASE( test_getpointing )
+{
+    double* data;
+    data = new double[10];
+    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData("pointing", 4, 10, data);
+    BOOST_CHECK_CLOSE(data[0], 688111, 1e-6);
+    BOOST_CHECK_CLOSE(data[9], 709496, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE( test_getqw )
+{
+    double* data;
+    data = new double[10];
+    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData("qw", 4, 10, data);
+    BOOST_CHECK_CLOSE(data[0], 0.37720931, 1e-5);
+    BOOST_CHECK_CLOSE(data[9], 0.31748405, 1e-5);
+}
+
+BOOST_AUTO_TEST_CASE( test_getuw )
+{
+    double* data;
+    data = new double[10];
+    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData("uw", 4, 10, data);
+    BOOST_CHECK_CLOSE(data[0], 0.92612803, 1e-5);
+    BOOST_CHECK_CLOSE(data[9], 0.94826361, 1e-5);
+}
+
 BOOST_AUTO_TEST_CASE( test_getdata_across )
 {
     double* data;
