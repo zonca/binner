@@ -16,6 +16,7 @@
 #include "Epetra_Map.h"
 #include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
+#include "Epetra_IntVector.h"
 #include "Epetra_DataAccess.h"
 #include "Epetra_Time.h"
 #include "Epetra_FEVbrMatrix.h"
@@ -72,6 +73,14 @@ invM.GlobalAssemble();
 log(Comm.MyPID(),"GlobalAssemble DONE");
 cout << time.ElapsedTime() << endl;
 
+log(Comm.MyPID(),"HITMAP");
+MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
+Epetra_Vector * hitmap;
+hitmap = new Epetra_Vector(PixMap);
+createHitmap(PixMap, *hitmap, invM);
+mapwriter.write(*hitmap, "hitmap.fits");
+delete hitmap;
+
 Epetra_Vector binmap(PixMap);
 log(Comm.MyPID(),"Computing RCOND and Inverting");
 Epetra_Vector rcond(PixMap);
@@ -84,7 +93,6 @@ invM.Apply(summap, binmap);
 
 log(Comm.MyPID(),"Writing MAPS");
 
-MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
 //mapwriter.write(binmap, "binmap.fits");
 mapwriter.write(rcond, "rcondmap.fits");
 mapwriter.write(summap, "summap.fits");

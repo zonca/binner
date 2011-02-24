@@ -109,11 +109,6 @@ int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epe
         P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
         P.ExtractEntryView(Prow);
 
-        if (Map.Comm().MyPID() == 0) {
-            cout << *Prow << endl;
-            cout <<  BlockIndicesOut[0] << endl;
-        }
-
         Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
         err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
@@ -136,6 +131,24 @@ int createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epe
 
     }
 
+}
+
+int createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_FEVbrMatrix& invM) {
+    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    int RCondIndices[1], err;
+    double RCondValues[1];
+    int RowDim, NumBlockEntries;
+    int *BlockIndicesOut;
+    Epetra_SerialDenseMatrix * blockM;
+
+    for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
+        invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
+        invM.ExtractEntryView(blockM);
+
+        RCondValues[0] = (*blockM)(0,0);
+        RCondIndices[0] = PixMyGlobalElements[i];
+        hitmap.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
+    }
 }
 
 int invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
