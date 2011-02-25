@@ -101,9 +101,10 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
     Epetra_SerialDenseMatrix *Prow;
     int RowDim, NumBlockEntries;
     int * LocalPix;
-    int * GlobalPix;
-    GlobalPix = new int[1];
+
+    boost::scoped_array<int> GlobalPix (new int[1]);
     boost::scoped_ptr<Epetra_SerialDenseMatrix> Mpp (new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES));
+
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
         P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
@@ -116,7 +117,7 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-        invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix);
+        invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
         //invM.BeginSumIntoLocalValues(GlobalPix[0], 1, GlobalPix);
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
@@ -156,8 +157,8 @@ void createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_F
 
 void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
 
-    Epetra_SerialDenseSolver * SSolver;
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
 
     double rcond_blockM;
     Epetra_SerialDenseMatrix * blockM;
@@ -172,7 +173,6 @@ void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vec
         invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
         invM.ExtractEntryView(blockM);
 
-        SSolver = new Epetra_SerialDenseSolver();
         SSolver->SetMatrix(*blockM);
         //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
         if ((*blockM)(0,0) > 0) {
