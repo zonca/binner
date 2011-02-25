@@ -179,21 +179,24 @@ void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vec
             err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
             if (err != 0) {
                 cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+                rcond_blockM = -2;
             }
             if (rcond_blockM > 1e-5) {
                 err = SSolver->Invert();
                 if (err != 0) {
                     cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+                    rcond_blockM = -3;
                 }
-            } else {
+            }
+        } else {
+            rcond_blockM = -1;
+        }
+        if (rcond_blockM < 1e-5) {
                 for (int r=0; r<blockM->M(); ++r) {
                     for (int c=0; c<blockM->N(); ++c) {
                         (*blockM)(r,c) = 0.;
                     }
                 }
-            }
-        } else {
-            rcond_blockM = -1;
         }
         RCondValues[0] = rcond_blockM;
         RCondIndices[0] = PixMyGlobalElements[i];
