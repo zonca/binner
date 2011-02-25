@@ -2,7 +2,9 @@
 #define CREATEMATRICES_H
 
 #include <string>
-#include <vector>
+
+#include <boost/scoped_array.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "Epetra_ConfigDefs.h"
 #ifdef HAVE_MPI
@@ -25,18 +27,19 @@ using namespace std;
 void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataManager* dm, Epetra_VbrMatrix& P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
+
     int NumMyElements = Map.NumMyElements();
     int err;
 
-    double* pointing; pointing = new double[NumMyElements];
-    double* qw; qw = new double[NumMyElements];
-    double* uw; uw = new double[NumMyElements];
-    dm->getData("pointing", Map.MinMyGID(), NumMyElements, pointing);
-    dm->getData("qw", Map.MinMyGID(), NumMyElements, qw);
-    dm->getData("uw", Map.MinMyGID(), NumMyElements, uw);
+    boost::scoped_array<double> pointing(new double[NumMyElements]);
+    boost::scoped_array<double> qw(new double[NumMyElements]);
+    boost::scoped_array<double> uw(new double[NumMyElements]);
 
-    //double Values[3];
-    double* Values; Values = new double[3];
+    dm->getData("pointing", Map.MinMyGID(), NumMyElements, pointing.get());
+    dm->getData("qw", Map.MinMyGID(), NumMyElements, qw.get());
+    dm->getData("uw", Map.MinMyGID(), NumMyElements, uw.get());
+
+    boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
     int Indices[1];
     int MyPID = Map.Comm().MyPID();
@@ -52,12 +55,11 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
                 cout << "Error in inserting values in P, error code:" << err << endl;
                 }
 
-        
             Values[0] = 1.;
             Values[1] = qw[i];
             Values[2] = uw[i];
 
-            err = P.SubmitBlockEntry(Values, 1, 1, 3);
+            err = P.SubmitBlockEntry(Values.get(), 1, 1, 3);
             if (err != 0) {
                 cout << "Error in submitting entries for P, error code:" << err << endl;
                 }
@@ -78,24 +80,21 @@ void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM)
     int BlockIndices[1];
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     int err;
-    Epetra_SerialDenseMatrix * Zero;
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> Zero (new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES));
 
     for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
         BlockIndices[0] = PixMyGlobalElements[i];
-        Zero = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
         invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
         err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
                 if (err != 0) {
                     cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
                     }
         err = invM.EndSubmitEntries();
-        delete Zero;
     }
 }
 
 void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
-    Epetra_SerialDenseMatrix * Mpp;
     int err;
 
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
@@ -104,13 +103,13 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
     int * LocalPix;
     int * GlobalPix;
     GlobalPix = new int[1];
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> Mpp (new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES));
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
         P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
         P.ExtractEntryView(Prow);
         GlobalPix[0] = P.GCID(LocalPix[0]);
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
-        Mpp = new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES);
 
         err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
             if (err != 0) {
@@ -129,7 +128,6 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
                 if (err != 0) {
                     cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
                     }
-        delete Mpp;
 
     }
 
