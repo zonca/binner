@@ -149,7 +149,10 @@ void createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_F
 
         RCondValues[0] = (*blockM)(0,0);
         RCondIndices[0] = PixMyGlobalElements[i];
-        hitmap.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
+        err = hitmap.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
+                if (err != 0) {
+                    cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in creating HITMAP:" << err << endl;
+                    }
     }
 }
 
