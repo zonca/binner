@@ -54,6 +54,7 @@ PlanckDataManager::PlanckDataManager(int firstOd,int  lastOd, const list<string>
 
 int PlanckDataManager::getPointing(long iStart, int nElements, int* pointing, double* qw, double* uw){
      H5File file( "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5", H5F_ACC_RDONLY );
+     DataSet dataset = file.openDataSet( DATASET_NAME );
 
 }
 
