@@ -1,10 +1,5 @@
 #include <string>
 #include <math.h>
-#include "PlanckDataManager.h"
-#include "MapWriter.h"
-#include "CreateMatrices.h"
-#include "ReadParameterFile.h"
-#include "Utils.h"
 
 #include "Epetra_ConfigDefs.h"
 #ifdef HAVE_MPI
@@ -21,6 +16,11 @@
 #include "Epetra_Time.h"
 #include "Epetra_FEVbrMatrix.h"
 
+#include "H5PlanckDataManager.h"
+#include "MapWriter.h"
+#include "CreateMatrices.h"
+#include "ReadParameterFile.h"
+
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 #endif  
 
 Epetra_Time time(Comm);
-PlanckDataManager* dm;
+H5PlanckDataManager* dm;
 
 string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);

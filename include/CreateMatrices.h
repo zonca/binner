@@ -20,12 +20,12 @@
 #include "Epetra_FEVbrMatrix.h"
 #include <Epetra_SerialDenseSolver.h>
 
-#include "PlanckDataManager.h"
+#include "H5PlanckDataManager.h"
 #include "Utils.h"
 
 using namespace std;
 
-void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataManager* dm, Epetra_VbrMatrix& P) {
+void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, Epetra_VbrMatrix& P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -33,16 +33,10 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
     int NumMyElements = Map.NumMyElements();
     int err;
 
-    boost::scoped_array<double> pointing(new double[NumMyElements]);
-    boost::scoped_array<double> qw(new double[NumMyElements]);
-    boost::scoped_array<double> uw(new double[NumMyElements]);
+    boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
     log(MyPID, "Reading pointing");
 
-    dm->getData("pointing", Map.MinMyGID(), NumMyElements, pointing.get());
-    log(MyPID, "Reading qw");
-    dm->getData("qw", Map.MinMyGID(), NumMyElements, qw.get());
-    log(MyPID, "Reading uw");
-    dm->getData("uw", Map.MinMyGID(), NumMyElements, uw.get());
+    dm->getPointing(Map.MinMyGID(), NumMyElements, pointing.get());
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
@@ -51,7 +45,7 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
     log(MyPID, "Assembling P");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
             int GlobalNode = MyGlobalElements[i];
-            Indices[0] = int(pointing[i]);
+            Indices[0] = int(pointing[i].pix);
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
             err = P.BeginInsertGlobalValues(GlobalNode, 1, Indices);
 
@@ -60,8 +54,8 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
                 }
 
             Values[0] = 1.;
-            Values[1] = qw[i];
-            Values[2] = uw[i];
+            Values[1] = pointing[i].qw;
+            Values[2] = pointing[i].uw;
 
             err = P.SubmitBlockEntry(Values.get(), 1, 1, 3);
             if (err != 0) {
