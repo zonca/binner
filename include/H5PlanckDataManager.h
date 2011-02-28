@@ -21,7 +21,7 @@ class H5PlanckDataManager
 
     public:
         H5PlanckDataManager(int firstOd, int lastOd, vector<string> channels, string dataPath, string pointingPath);
-        int getData(string what, long iStart, int nElements, double* data);
+        int getData(long iStart, int nElements, double* data);
         int getPointing(long iStart, int nElements, pointing_t* pointing);
 
         double getDatasetLength(void) {

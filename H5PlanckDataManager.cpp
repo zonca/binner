@@ -92,7 +92,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
     return 0;
 }
 
-int H5PlanckDataManager::getData(string what, long iStart, int nElements, double* data){
+int H5PlanckDataManager::getData(long iStart, int nElements, double* data){
     H5File file( DataPath, H5F_ACC_RDONLY );
 
     string channel = Channels[iStart/LengthPerChannel];

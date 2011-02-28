@@ -14,8 +14,8 @@ struct setUp {
     string dataPath, pointingPath;
     vector<string> onech, twoch;
     setUp() {
-                dataPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";
                 pointingPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";
+                dataPath = "/home/zonca/p/testdata/lfi_ops_dx4.h5";
                 onech.push_back("LFI27S");
 
                 twoch.push_back("LFI28M");
@@ -38,24 +38,25 @@ BOOST_AUTO_TEST_CASE( test_getdatasetlength )
     BOOST_CHECK_EQUAL( dm->getDatasetLength(), 2812782 + 2812879);
 }
 //
-//BOOST_AUTO_TEST_CASE( test_getdata )
-//{
-//    double* data;
-//    data = new double[10];
-//    PlanckDataManager dm1(92, 92, onech, dataPath, pointingPath);
-//    dm1.getData("data", 4, 10, data);
-//    BOOST_CHECK_CLOSE(data[0], 0.001275042424, 1e-6);
-//    BOOST_CHECK_CLOSE(data[9], 0.001514075488, 1e-6);
-//}
-//
-//BOOST_AUTO_TEST_CASE( test_getdata_twoch )
-//{
-//    double* data;
-//    data = new double[10];
-//    PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
-//    dm1.getData("data", 2812782, 10, data);
-//    BOOST_CHECK_CLOSE(data[0], -0.000420763029471, 1e-6);
-//    BOOST_CHECK_CLOSE(data[9], -0.001445570012144, 1e-6);
+BOOST_AUTO_TEST_CASE( test_getdata )
+{
+    double* data;
+    data = new double[10];
+    H5PlanckDataManager dm1(92, 92, onech, dataPath, pointingPath);
+    dm1.getData(4, 10, data);
+    BOOST_CHECK_CLOSE(data[0], 0.001275042424, 1e-6);
+    BOOST_CHECK_CLOSE(data[9], 0.001514075488, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE( test_getdata_twoch )
+{
+    double* data;
+    data = new double[10];
+    H5PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
+    dm1.getData(2812782, 10, data);
+    BOOST_CHECK_CLOSE(data[0], -0.000420763029471, 1e-6);
+    BOOST_CHECK_CLOSE(data[9], -0.001445570012144, 1e-6);
+}
 
 BOOST_AUTO_TEST_CASE( test_getpointing )
 {
@@ -70,14 +71,14 @@ BOOST_AUTO_TEST_CASE( test_getpointing )
     BOOST_CHECK_CLOSE(pointing[9].uw, 0.94826361, 1e-5);
 }
 
-//BOOST_AUTO_TEST_CASE( test_getdata_across )
-//{
-//    pointing_t pointing[10];
-//    H5PlanckDataManager dm1(92, 93, onech, dataPath, pointingPath);
-//    dm1.getPointing(2812780, 10, pointing);
-//    BOOST_CHECK_CLOSE(pointing[0], -0.000309952667485, 1e-6); //5 from end of  elem of 92
-//    BOOST_CHECK_CLOSE(pointing[9], -0.001144992688151, 1e-6);  //8th elem of 93
-//}
+BOOST_AUTO_TEST_CASE( test_getdata_across )
+{
+    double data[10];
+    H5PlanckDataManager dm1(92, 93, onech, dataPath, pointingPath);
+    dm1.getData(2812780, 10, data);
+    BOOST_CHECK_CLOSE(data[0], -0.000309952667485, 1e-6); //5 from end of  elem of 92
+    BOOST_CHECK_CLOSE(data[9], -0.001144992688151, 1e-6);  //8th elem of 93
+}
 
 BOOST_AUTO_TEST_CASE( test_qw_across )
 {

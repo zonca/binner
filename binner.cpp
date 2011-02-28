@@ -51,7 +51,7 @@ cout << time.ElapsedTime() << endl;
 
 log(Comm.MyPID(),"READ DATA");
 double* data; data = new double[Map.NumMyElements()];
-dm->getData("data", Map.MinMyGID() ,Map.NumMyElements(),data);
+dm->getData(Map.MinMyGID() ,Map.NumMyElements(),data);
 Epetra_Vector y(Copy,Map,data);
 delete data;
 cout << time.ElapsedTime() << endl;
