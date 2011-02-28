@@ -29,7 +29,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
     DataSpace dataspace = dataset.getSpace();
     hsize_t  offset[1];       // hyperslab offset in memory
     hsize_t  count[1];        // size of the hyperslab in memory
-    offset[0] = FirstOd - 92;
+    offset[0] = FirstOd - 91;
     count[0]  = 1;
     dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 
@@ -48,7 +48,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 
     GlobalOffset = odstart[0]; //computed from first OD
 
-    offset[0] = LastOd + 1 - 92;
+    offset[0] = LastOd + 1 - 91;
     dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
     dataset.read( odstart, PredType::NATIVE_INT, memspace, dataspace );
 
