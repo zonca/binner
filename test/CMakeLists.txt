@@ -18,6 +18,11 @@ add_test(test_planckdatamanager test_planckdatamanager)
 target_link_libraries(test_planckdatamanager PlanckDataManager read_fits_lib cfitsio)
 add_dependencies(check test_planckdatamanager)
 
+add_executable(test_h5planckdatamanager test_h5planckdatamanager.cpp)
+add_test(test_h5planckdatamanager test_h5planckdatamanager)
+target_link_libraries(test_h5planckdatamanager H5PlanckDataManager read_fits_lib hdf5 hdf5_cpp)
+add_dependencies(check test_h5planckdatamanager)
+
 add_executable(test_creatematrices test_creatematrices.cpp)
 target_link_libraries(test_creatematrices PlanckDataManager trilinos_epetra read_fits_lib cfitsio )
 add_dependencies(check test_creatematrices)

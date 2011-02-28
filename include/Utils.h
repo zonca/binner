@@ -3,6 +3,7 @@
 
 #include <string>
 #include <boost/format.hpp>
+#include "H5Cpp.h"
 
 using namespace std;
 using boost::format;

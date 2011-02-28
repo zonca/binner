@@ -21,6 +21,7 @@ endif($ENV{NERSC_HOST} STREQUAL carver)
 
 add_library(DataManager DataManager.cpp)
 add_library(PlanckDataManager PlanckDataManager.cpp)
+add_library(H5PlanckDataManager H5PlanckDataManager.cpp)
 add_library(read_fits_lib read_fits_lib.c)
 
 add_executable(binner binner.cpp)
