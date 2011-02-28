@@ -21,6 +21,7 @@
 #include <Epetra_SerialDenseSolver.h>
 
 #include "PlanckDataManager.h"
+#include "Utils.h"
 
 using namespace std;
 
@@ -28,23 +29,26 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
+    int MyPID = Map.Comm().MyPID();
     int NumMyElements = Map.NumMyElements();
     int err;
 
     boost::scoped_array<double> pointing(new double[NumMyElements]);
     boost::scoped_array<double> qw(new double[NumMyElements]);
     boost::scoped_array<double> uw(new double[NumMyElements]);
+    log(MyPID, "Reading pointing");
 
     dm->getData("pointing", Map.MinMyGID(), NumMyElements, pointing.get());
+    log(MyPID, "Reading qw");
     dm->getData("qw", Map.MinMyGID(), NumMyElements, qw.get());
+    log(MyPID, "Reading uw");
     dm->getData("uw", Map.MinMyGID(), NumMyElements, uw.get());
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
     int Indices[1];
-    int MyPID = Map.Comm().MyPID();
 
-    //for( int i=0 ; i<1; ++i ) { //loop on local rows
+    log(MyPID, "Assembling P");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
             int GlobalNode = MyGlobalElements[i];
             Indices[0] = int(pointing[i]);
@@ -72,7 +76,9 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, PlanckDataMan
                 }
     }
 
+    log(MyPID, "FillComplete P");
     P.FillComplete(PixMap, Map);
+    log(MyPID, "FillComplete P done");
 }
 
 void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
