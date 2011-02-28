@@ -21,11 +21,39 @@ using namespace H5;
 H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string> Channels, string DataPath, string PointingPath) : Channels(Channels),
     DataPath(DataPath), PointingPath(PointingPath) 
 {
-    //TODO compute instead of hardcode
+    H5File file( PointingPath, H5F_ACC_RDONLY );
 
-    GlobalOffset = 0; //computed from first OD
-    TotalLength = 100; //computed from last OD - first OD
-    LengthPerChannel = 25;
+    DataSet dataset = file.openDataSet( "OD" );
+
+    //DATASPACE
+    DataSpace dataspace = dataset.getSpace();
+    hsize_t  offset[1];       // hyperslab offset in memory
+    hsize_t  count[1];        // size of the hyperslab in memory
+    offset[0] = FirstOd - 92;
+    count[0]  = 1;
+    dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+
+    //MEMSPACE
+    hsize_t     dimsm[1];
+    dimsm[0] = 1;
+    hsize_t      offset_out[1];       // hyperslab offset in memory
+    offset_out[0] = 0;
+    hsize_t      count_out[1];        // size of the hyperslab in memory
+    count_out[0]  = 1;
+    DataSpace memspace( 1, dimsm );
+    memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+
+    int odstart[1];
+    dataset.read( odstart, PredType::NATIVE_INT, memspace, dataspace );
+
+    GlobalOffset = odstart[0]; //computed from first OD
+
+    offset[0] = LastOd + 1 - 92;
+    dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+    dataset.read( odstart, PredType::NATIVE_INT, memspace, dataspace );
+
+    LengthPerChannel = odstart[0];
+    TotalLength = LengthPerChannel * Channels.size(); //computed from last OD - first OD
 
 };
 
