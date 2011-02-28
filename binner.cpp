@@ -49,9 +49,10 @@ boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
 Epetra_BlockMap PixMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
 
 log(Comm.MyPID(),"POINTING MATRIX");
-Epetra_VbrMatrix P(Copy,Map,0);
+
+Epetra_VbrMatrix P(Copy,Map,1);
+
 createP(Map, PixMap, dm, P);
-//cout << time.ElapsedTime() << endl;
 
 //log(Comm.MyPID(),"READ DATA");
 //double* data; data = new double[Map.NumMyElements()];

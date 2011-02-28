@@ -36,8 +36,8 @@ elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     target_link_libraries(binner H5PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext hdf5 hdf5_cpp)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
-    target_link_libraries(binner H5PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext)
-    target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext)
+    target_link_libraries(binner H5PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext hdf5 hdf5_cpp)
+    target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 # TEST
