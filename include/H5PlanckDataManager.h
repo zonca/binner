@@ -12,8 +12,7 @@ class H5PlanckDataManager
 
 {
     private:
-        long datasetLength_;
-        int TotalLength, LengthPerChannel;
+        long TotalLength, LengthPerChannel;
         vector<string> Channels;
         string DataPath;
         string PointingPath;

@@ -24,14 +24,13 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         pointingPath = "/scratch/scratchdirs/zonca/pointing/dx4_1024_nest_30.h5";
         NSIDE = 1024;
     }
-    //const list<string> channels = list_of( "LFI28M" );
     vector<string> channels;
     channels.push_back("LFI27M");
     channels.push_back("LFI27S");
     channels.push_back("LFI28M");
     channels.push_back("LFI28S");
 
-    dm = new H5PlanckDataManager(91, 94, channels, dataPath, pointingPath);
+    dm = new H5PlanckDataManager(91, 141, channels, dataPath, pointingPath);
     if (DEBUG) {
         dm->setDatasetLength(1000);
     }

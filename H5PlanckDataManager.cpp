@@ -60,7 +60,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
     string channel = Channels[iStart/LengthPerChannel];
-    cout << "Channel " << channel << endl;
+    //cout << "Channel " << channel << endl;
     int Offset = iStart % LengthPerChannel; 
 
     DataSet dataset = file.openDataSet( channel );

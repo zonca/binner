@@ -25,7 +25,7 @@
 
 using namespace std;
 
-void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, Epetra_VbrMatrix& P) {
+void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, Epetra_VbrMatrix& P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -36,6 +36,7 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, H5PlanckDataM
     boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
     log(MyPID, "Reading pointing");
 
+    cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
     dm->getPointing(Map.MinMyGID(), NumMyElements, pointing.get());
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
@@ -45,13 +46,13 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, H5PlanckDataM
     log(MyPID, "Assembling P");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
             int GlobalNode = MyGlobalElements[i];
-            Indices[0] = int(pointing[i].pix);
+            Indices[0] = pointing[i].pix;
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
             err = P.BeginInsertGlobalValues(GlobalNode, 1, Indices);
 
             if (err != 0) {
                 cout << "Error in inserting values in P, error code:" << err << endl;
-                }
+            }
 
             Values[0] = 1.;
             Values[1] = pointing[i].qw;
@@ -60,14 +61,14 @@ void createP(const Epetra_Map& Map, const Epetra_BlockMap& PixMap, H5PlanckDataM
             err = P.SubmitBlockEntry(Values.get(), 1, 1, 3);
             if (err != 0) {
                 cout << "Error in submitting entries for P, error code:" << err << endl;
-                }
+            }
             err = P.EndSubmitEntries();
             if (err != 0) {
                 cout << "Error in ending submit entries for P, error code:" << err << endl;
-            cout << "INDICES 0: " <<Indices[0] << endl;
-            cout << "GlobalNode:" << GlobalNode<< endl;
-            cout << "VALUES 0: " <<Values[0] << " 1: " << Values[1] << " 2: " << Values[2] << endl;
-                }
+                cout << "INDICES 0: " <<Indices[0] << endl;
+                cout << "GlobalNode:" << GlobalNode<< endl;
+                cout << "VALUES 0: " <<Values[0] << " 1: " << Values[1] << " 2: " << Values[2] << endl;
+            }
     }
 
     log(MyPID, "FillComplete P");
