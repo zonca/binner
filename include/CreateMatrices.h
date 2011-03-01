@@ -36,7 +36,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
     boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
     log(MyPID, "Reading pointing");
 
-    cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
+    //cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
     dm->getPointing(Map.MinMyGID(), NumMyElements, pointing.get());
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);

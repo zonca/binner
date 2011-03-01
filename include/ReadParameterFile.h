@@ -1,16 +1,13 @@
 #ifndef READPARAMETERFILE_H
 #define READPARAMETERFILE_H
 
-#include <boost/assign/list_of.hpp> // for 'list_of()'
 #include "H5PlanckDataManager.h"
-
-using namespace boost::assign; // bring 'list_of()' into scope
 
 void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     //TODO read parameter file
 
-    bool DEBUG = true;
+    bool DEBUG = false;
     int NSIDE;
     string dataPath, pointingPath;
 
@@ -20,7 +17,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     NSIDE = 1024;
     firstOD = 91;
-    lastOD = 141;
+    lastOD = 453;
 
     if (DEBUG) {
         pointingPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";
