@@ -25,7 +25,7 @@
 
 using namespace std;
 
-void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, Epetra_VbrMatrix& P) {
+void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, int offset,Epetra_VbrMatrix* P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -37,7 +37,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
     log(MyPID, "Reading pointing");
 
     cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
-    dm->getPointing(Map.MinMyGID(), NumMyElements, pointing.get());
+    dm->getPointing(Map.MinMyGID() + offset, NumMyElements, pointing.get());
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
@@ -48,7 +48,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
             int GlobalNode = MyGlobalElements[i];
             Indices[0] = pointing[i].pix;
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
-            err = P.BeginInsertGlobalValues(GlobalNode, 1, Indices);
+            err = P->BeginInsertGlobalValues(GlobalNode, 1, Indices);
 
             if (err != 0) {
                 cout << "Error in inserting values in P, error code:" << err << endl;
@@ -58,11 +58,11 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
             Values[1] = pointing[i].qw;
             Values[2] = pointing[i].uw;
 
-            err = P.SubmitBlockEntry(Values.get(), 1, 1, 3);
+            err = P->SubmitBlockEntry(Values.get(), 1, 1, 3);
             if (err != 0) {
                 cout << "Error in submitting entries for P, error code:" << err << endl;
             }
-            err = P.EndSubmitEntries();
+            err = P->EndSubmitEntries();
             if (err != 0) {
                 cout << "Error in ending submit entries for P, error code:" << err << endl;
                 cout << "INDICES 0: " <<Indices[0] << endl;
@@ -72,7 +72,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
     }
 
     log(MyPID, "FillComplete P");
-    P.FillComplete(PixMap, Map);
+    P->FillComplete(PixMap, Map);
     log(MyPID, "FillComplete P done");
 }
 
@@ -94,7 +94,7 @@ void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM)
     }
 }
 
-void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix& P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix* P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int err;
 
@@ -108,9 +108,9 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
 
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
-        P.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
-        P.ExtractEntryView(Prow);
-        GlobalPix[0] = P.GCID(LocalPix[0]);
+        P->BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
+        P->ExtractEntryView(Prow);
+        GlobalPix[0] = P->GCID(LocalPix[0]);
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
         err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);

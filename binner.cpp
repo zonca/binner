@@ -1,6 +1,8 @@
 #include <string>
 #include <math.h>
 
+#include <boost/scoped_ptr.hpp>
+
 #include "Epetra_ConfigDefs.h"
 #ifdef HAVE_MPI
 #include "mpi.h"
@@ -33,6 +35,8 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
+int SAMPLES_PER_PROC = 1000000;
+
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
 
@@ -40,51 +44,70 @@ string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);
 
 log(Comm.MyPID(), format("Number of elements: %d") % dm->getDatasetLength());
-Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
+//Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
+Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
 
 int NumMyElements = Map.NumMyElements();
 cout << Comm.MyPID() << " " << Map.MinMyGID() << " " << NumMyElements << endl;
-boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
 
 Epetra_BlockMap PixMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
 
+// declaring matrices
 log(Comm.MyPID(),"POINTING MATRIX");
+Epetra_Vector summap(PixMap);
+Epetra_Vector temp_summap(PixMap);
+Epetra_VbrMatrix * P;
+Epetra_Vector * y;
+double* data; 
 
-Epetra_VbrMatrix P(Copy,Map,1);
+Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 
-createP(Map, PixMap, dm, P);
+// initialize M
+log(Comm.MyPID(),"Initializing M");
+initM(PixMap, dm->NSTOKES, invM);
+log(Comm.MyPID(),"GlobalAssemble");
+invM.GlobalAssemble();
+log(Comm.MyPID(),"GlobalAssemble DONE");
+cout << time.ElapsedTime() << endl;
 
-//log(Comm.MyPID(),"READ DATA");
-//double* data; data = new double[Map.NumMyElements()];
-//dm->getData(Map.MinMyGID() ,Map.NumMyElements(),data);
-//Epetra_Vector y(Copy,Map,data);
-//delete data;
-//cout << time.ElapsedTime() << endl;
-//
-//log(Comm.MyPID(),"SUM MAP");
-//Epetra_Vector summap(PixMap);
-//P.Multiply1(true,y,summap); //SUMMAP = Pt y
-//
-//Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
-//
-//log(Comm.MyPID(),"Initializing M");
-//initM(PixMap, dm->NSTOKES, invM);
-//
-//log(Comm.MyPID(),"Creating M");
-//createM(PixMap, Map, P, dm->NSTOKES, invM);
-//
-//log(Comm.MyPID(),"GlobalAssemble");
-//invM.GlobalAssemble();
-//log(Comm.MyPID(),"GlobalAssemble DONE");
-//cout << time.ElapsedTime() << endl;
-//
+//LOOP
+for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalElements()) {
+
+    log(Comm.MyPID(),format("Offset: %d") % offset);
+    P = new Epetra_VbrMatrix(Copy, Map, 1);
+    createP(Map, PixMap, dm, offset, P);
+
+    log(Comm.MyPID(),"READ DATA");
+    data = new double[Map.NumMyElements()];
+    dm->getData(Map.MinMyGID() + offset,Map.NumMyElements(),data);
+    y = new Epetra_Vector(Copy,Map,data);
+    delete[] data;
+
+    cout << time.ElapsedTime() << endl;
+
+    log(Comm.MyPID(),"SUM MAP");
+    P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
+    for (int i; i<PixMap.NumMyElements(); i++) {
+        summap[i] += temp_summap[i];
+    }
+    delete y;
+
+    log(Comm.MyPID(),"Creating M");
+    createM(PixMap, Map, P, dm->NSTOKES, invM);
+    log(Comm.MyPID(),"GlobalAssemble");
+    invM.GlobalAssemble();
+    log(Comm.MyPID(),"GlobalAssemble DONE");
+    delete P;
+}
+//end LOOP
+
 //log(Comm.MyPID(),"HITMAP");
-//MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
-//Epetra_Vector * hitmap;
-//hitmap = new Epetra_Vector(PixMap);
-//createHitmap(PixMap, *hitmap, invM);
-//mapwriter.write(*hitmap, "hitmap.fits");
-//delete hitmap;
+MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
+Epetra_Vector * hitmap;
+hitmap = new Epetra_Vector(PixMap);
+createHitmap(PixMap, *hitmap, invM);
+mapwriter.write(*hitmap, "hitmap.fits");
+delete hitmap;
 //
 //Epetra_Vector binmap(PixMap);
 //log(Comm.MyPID(),"Computing RCOND and Inverting");
@@ -100,7 +123,7 @@ createP(Map, PixMap, dm, P);
 //
 //mapwriter.write(binmap, "binmap.fits");
 //mapwriter.write(rcond, "rcondmap.fits");
-//mapwriter.write(summap, "summap.fits");
+mapwriter.write(summap, "summap.fits");
 //cout << time.ElapsedTime() << endl;
 
 #ifdef HAVE_MPI

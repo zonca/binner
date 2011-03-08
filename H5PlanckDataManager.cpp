@@ -59,66 +59,98 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* pointing){
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
-    string channel = Channels[iStart/LengthPerChannel];
-    //cout << "Channel " << channel << endl;
-    int Offset = iStart % LengthPerChannel; 
+    int NPIX = getNPIX();
+    if (iStart >= TotalLength) {
+        for (int i; i<nElements; i++) {
+            pointing[i].pix = NPIX;
+            pointing[i].qw = 0.;
+            pointing[i].uw = 0.;
+        }
+    } else {
 
-    DataSet dataset = file.openDataSet( channel );
+        if (iStart + nElements >= TotalLength) {
+            for (int i; i<nElements; i++) {
+                pointing[i].pix = NPIX;
+                pointing[i].qw = 0.;
+                pointing[i].uw = 0.;
+            }
+            nElements = TotalLength - iStart;
+        }
 
-    //DATASPACE
-    DataSpace dataspace = dataset.getSpace();
-    hsize_t  offset[1];       // hyperslab offset in memory
-    hsize_t  count[1];        // size of the hyperslab in memory
-    offset[0] = Offset;
-    count[0]  = nElements;
-    dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+        string channel = Channels[iStart/LengthPerChannel];
+        //cout << "Channel " << channel << endl;
+        int Offset = iStart % LengthPerChannel; 
 
-    //MEMSPACE
-    hsize_t     dimsm[1];
-    dimsm[0] = nElements;
-    hsize_t      offset_out[1];       // hyperslab offset in memory
-    offset_out[0] = 0;
-    hsize_t      count_out[1];        // size of the hyperslab in memory
-    count_out[0]  = nElements;
-    DataSpace memspace( 1, dimsm );
-    memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+        DataSet dataset = file.openDataSet( channel );
 
-    CompType pointing_h5type( sizeof(pointing_t) );
-    pointing_h5type.insertMember( MEMBER1, HOFFSET(pointing_t, pix), PredType::NATIVE_INT);
-    pointing_h5type.insertMember( MEMBER2, HOFFSET(pointing_t, qw), PredType::NATIVE_DOUBLE);
-    pointing_h5type.insertMember( MEMBER3, HOFFSET(pointing_t, uw), PredType::NATIVE_DOUBLE);
+        //DATASPACE
+        DataSpace dataspace = dataset.getSpace();
+        hsize_t  offset[1];       // hyperslab offset in memory
+        hsize_t  count[1];        // size of the hyperslab in memory
+        offset[0] = Offset;
+        count[0]  = nElements;
+        dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 
-    dataset.read( pointing, pointing_h5type, memspace, dataspace );
+        //MEMSPACE
+        hsize_t     dimsm[1];
+        dimsm[0] = nElements;
+        hsize_t      offset_out[1];       // hyperslab offset in memory
+        offset_out[0] = 0;
+        hsize_t      count_out[1];        // size of the hyperslab in memory
+        count_out[0]  = nElements;
+        DataSpace memspace( 1, dimsm );
+        memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+
+        CompType pointing_h5type( sizeof(pointing_t) );
+        pointing_h5type.insertMember( MEMBER1, HOFFSET(pointing_t, pix), PredType::NATIVE_INT);
+        pointing_h5type.insertMember( MEMBER2, HOFFSET(pointing_t, qw), PredType::NATIVE_DOUBLE);
+        pointing_h5type.insertMember( MEMBER3, HOFFSET(pointing_t, uw), PredType::NATIVE_DOUBLE);
+
+        dataset.read( pointing, pointing_h5type, memspace, dataspace );
+    }
     return 0;
 }
 
 int H5PlanckDataManager::getData(long iStart, int nElements, double* data){
     H5File file( DataPath, H5F_ACC_RDONLY );
 
-    string channel = Channels[iStart/LengthPerChannel];
-    int Offset = iStart % LengthPerChannel; 
+    if (iStart >= TotalLength) {
+        for (int i; i<nElements; i++) {
+            data[i] = 0;
+        }
+    } else {
 
-    DataSet dataset = file.openDataSet( channel );
+        if (iStart + nElements >= TotalLength) {
+            for (int i; i<nElements; i++) {
+                data[i] = 0;
+            }
+            nElements = TotalLength - iStart;
+        }
 
-    //DATASPACE
-    DataSpace dataspace = dataset.getSpace();
-    hsize_t  offset[1];       // hyperslab offset in memory
-    hsize_t  count[1];        // size of the hyperslab in memory
-    offset[0] = Offset;
-    count[0]  = nElements;
-    dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+        string channel = Channels[iStart/LengthPerChannel];
+        int Offset = iStart % LengthPerChannel; 
 
-    //MEMSPACE
-    hsize_t     dimsm[1];
-    dimsm[0] = nElements;
-    hsize_t      offset_out[1];       // hyperslab offset in memory
-    offset_out[0] = 0;
-    hsize_t      count_out[1];        // size of the hyperslab in memory
-    count_out[0]  = nElements;
-    DataSpace memspace( 1, dimsm );
-    memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+        DataSet dataset = file.openDataSet( channel );
 
-    CompType pointing_h5type( sizeof(pointing_t) );
-    dataset.read( data, PredType::NATIVE_DOUBLE, memspace, dataspace );
+        //DATASPACE
+        DataSpace dataspace = dataset.getSpace();
+        hsize_t  offset[1];       // hyperslab offset in memory
+        hsize_t  count[1];        // size of the hyperslab in memory
+        offset[0] = Offset;
+        count[0]  = nElements;
+        dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+
+        //MEMSPACE
+        hsize_t     dimsm[1];
+        dimsm[0] = nElements;
+        hsize_t      offset_out[1];       // hyperslab offset in memory
+        offset_out[0] = 0;
+        hsize_t      count_out[1];        // size of the hyperslab in memory
+        count_out[0]  = nElements;
+        DataSpace memspace( 1, dimsm );
+        memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+
+        dataset.read( data, PredType::NATIVE_DOUBLE, memspace, dataspace );
+    }
     return 0;
 }
