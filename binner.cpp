@@ -101,7 +101,7 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
 }
 //end LOOP
 
-//log(Comm.MyPID(),"HITMAP");
+log(Comm.MyPID(),"HITMAP");
 MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
 Epetra_Vector * hitmap;
 hitmap = new Epetra_Vector(PixMap);

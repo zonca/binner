@@ -59,6 +59,7 @@ class MapWriter
             exp.Export(vector,*Exporter,Add);
 
             if( Comm_.MyPID() == 0 ) {
+                cout << "Exported to proc 0" << endl;
                 double * hitmap_vector;
                 hitmap_vector = new double[NPIX*3];
                 exp.ExtractCopy(hitmap_vector);
@@ -75,7 +76,9 @@ class MapWriter
                     q[i] = hitmap_vector[3*i +1];
                     u[i] = hitmap_vector[3*i +2];
                 }
+                cout << "Writing Map" << endl;
                 write_map(fileName.c_str(), intensity, q, u, mapNPIX);
+                cout << "Map written" << endl;
             } 
             return 0;
         }
