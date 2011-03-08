@@ -61,7 +61,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
 
     int NPIX = getNPIX();
     if (iStart >= TotalLength) {
-        for (int i; i<nElements; i++) {
+        for (int i=0; i<nElements; i++) {
             pointing[i].pix = NPIX;
             pointing[i].qw = 0.;
             pointing[i].uw = 0.;
@@ -69,7 +69,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
     } else {
 
         if (iStart + nElements >= TotalLength) {
-            for (int i; i<nElements; i++) {
+            for (int i=0; i<nElements; i++) {
                 pointing[i].pix = NPIX;
                 pointing[i].qw = 0.;
                 pointing[i].uw = 0.;
@@ -115,13 +115,13 @@ int H5PlanckDataManager::getData(long iStart, int nElements, double* data){
     H5File file( DataPath, H5F_ACC_RDONLY );
 
     if (iStart >= TotalLength) {
-        for (int i; i<nElements; i++) {
+        for (int i=0; i<nElements; i++) {
             data[i] = 0;
         }
     } else {
 
         if (iStart + nElements >= TotalLength) {
-            for (int i; i<nElements; i++) {
+            for (int i=0; i<nElements; i++) {
                 data[i] = 0;
             }
             nElements = TotalLength - iStart;

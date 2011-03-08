@@ -1,2 +1,2 @@
 rm *.fits out
-make binner && aprun -n 24 ./binner
+make binner && aprun -n 3 ./binner

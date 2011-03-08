@@ -23,7 +23,26 @@
 #include "CreateMatrices.h"
 #include "ReadParameterFile.h"
 
+#include "H5Cpp.h"
+
 using namespace std;
+using namespace H5;
+using boost::format;
+
+int WriteH5Vec(Epetra_Vector& vec, string filename) {
+    int MyPID = vec.Comm().MyPID();
+    H5std_string  FILE_NAME( str( format("%s_%03d.h5") % filename % MyPID ) );
+    H5File file(FILE_NAME, H5F_ACC_TRUNC );
+    hsize_t dimsf[1];
+    dimsf[0] = vec.Map().NumMyElements();
+    DataSpace dataspace( 1, dimsf );
+    DataSet dataset = file.createDataSet( "Vector", PredType::NATIVE_DOUBLE, dataspace );
+    double * data;
+    vec.ExtractView(&data);
+    dataset.write( data, PredType::NATIVE_DOUBLE );
+    return 0;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -87,7 +106,7 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
 
     log(Comm.MyPID(),"SUM MAP");
     P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
-    for (int i; i<PixMap.NumMyElements(); i++) {
+    for (int i=0; i<PixMap.NumMyElements(); i++) {
         summap[i] += temp_summap[i];
     }
     delete y;
@@ -100,13 +119,13 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
     delete P;
 }
 //end LOOP
-
+//
 log(Comm.MyPID(),"HITMAP");
 MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
 Epetra_Vector * hitmap;
 hitmap = new Epetra_Vector(PixMap);
 createHitmap(PixMap, *hitmap, invM);
-mapwriter.write(*hitmap, "hitmap.fits");
+WriteH5Vec(*hitmap, "hitmap.fits");
 delete hitmap;
 //
 //Epetra_Vector binmap(PixMap);
@@ -123,7 +142,7 @@ delete hitmap;
 //
 //mapwriter.write(binmap, "binmap.fits");
 //mapwriter.write(rcond, "rcondmap.fits");
-mapwriter.write(summap, "summap.fits");
+//mapwriter.write(summap, "summap.fits");
 //cout << time.ElapsedTime() << endl;
 
 #ifdef HAVE_MPI
