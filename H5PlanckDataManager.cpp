@@ -84,7 +84,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
 
         string channel = Channels[iStart/LengthPerChannel];
         cout << "Channel " << channel << endl;
-        int Offset = iStart % LengthPerChannel; 
+        long Offset = iStart % LengthPerChannel; 
 
         DataSet dataset = file.openDataSet( channel );
 
