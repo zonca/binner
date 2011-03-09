@@ -65,7 +65,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
     if (iStart >= TotalLength) {
         cout << "istart over " << iStart << endl;
         for (int i=0; i<nElements; i++) {
-            pointing[i].pix = NPIX;
+            pointing[i].pix = NPIX-1;
             pointing[i].qw = 0.;
             pointing[i].uw = 0.;
         }
@@ -74,9 +74,9 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
         cout << "istart + nELEm " << iStart + nElements << endl;
         if (iStart + nElements > TotalLength) {
             for (int i=0; i<nElements; i++) {
-                pointing[i].pix = NPIX;
-                pointing[i].qw = 0.5;
-                pointing[i].uw = 0.5;
+                pointing[i].pix = NPIX-1;
+                pointing[i].qw = 0;
+                pointing[i].uw = 0;
             }
             nElements = TotalLength - iStart;
             cout << "istart " << iStart << "new nElem " << nElements << endl;
