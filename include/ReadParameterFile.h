@@ -3,9 +3,24 @@
 
 #include "H5PlanckDataManager.h"
 
+typedef std::map<string, double> WeightDict;
+
 void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     //TODO read parameter file
+
+    WeightDict Weights;
+    Weights["LFI18"] = 5.2814E+04;
+    Weights["LFI19"] = 3.9294E+04;
+    Weights["LFI23"] = 4.6195E+04;
+    Weights["LFI22"] = 4.8167E+04;
+    Weights["LFI20"] = 3.4468E+04;
+    Weights["LFI21"] = 4.8501E+04;
+    Weights["LFI24"] = 1.1531E+05;
+    Weights["LFI25"] = 1.3288E+05;
+    Weights["LFI26"] = 1.0654E+05;
+    Weights["LFI27"] = 3.6656E+05;
+    Weights["LFI28"] = 3.4432E+05;
 
     bool DEBUG = false;
     int NSIDE;
@@ -33,7 +48,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     channels.push_back("LFI28M");
     channels.push_back("LFI28S");
 
-    dm = new H5PlanckDataManager(firstOD, lastOD, channels, dataPath, pointingPath);
+
+    dm = new H5PlanckDataManager(firstOD, lastOD, channels, dataPath, pointingPath, Weights);
     if (DEBUG) {
         dm->setDatasetLength(1000000);
     }

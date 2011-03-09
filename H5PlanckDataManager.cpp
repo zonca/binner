@@ -17,8 +17,8 @@ using boost::format;
 using namespace std;
 using namespace H5;
 
-H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string> Channels, string DataPath, string PointingPath) : Channels(Channels),
-    DataPath(DataPath), PointingPath(PointingPath) 
+H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string> Channels, string DataPath, string PointingPath, WeightDict Weights) : Channels(Channels),
+    DataPath(DataPath), PointingPath(PointingPath), Weights(Weights)
 {
     H5File file( PointingPath, H5F_ACC_RDONLY );
 
@@ -57,12 +57,12 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 
 };
 
-int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* pointing){
+int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements, pointing_t* pointing){
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
     int NPIX = getNPIX();
     cout << "NPIX" << NPIX;
-    if (iStart >= TotalLength) {
+    if (iStart >= LengthPerChannel) {
         cout << "istart over " << iStart << endl;
         for (int i=0; i<nElements; i++) {
             pointing[i].pix = NPIX-1;
@@ -72,7 +72,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
     } else {
 
         cout << "istart + nELEm " << iStart + nElements << endl;
-        if (iStart + nElements > TotalLength) {
+        if (iStart + nElements > LengthPerChannel) {
             for (int i=0; i<nElements; i++) {
                 pointing[i].pix = NPIX-1;
                 pointing[i].qw = 0;
@@ -82,9 +82,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
             cout << "istart " << iStart << "new nElem " << nElements << endl;
         }
 
-        string channel = Channels[iStart/LengthPerChannel];
         cout << "Channel " << channel << endl;
-        long Offset = iStart % LengthPerChannel; 
 
         DataSet dataset = file.openDataSet( channel );
 
@@ -92,7 +90,7 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
         DataSpace dataspace = dataset.getSpace();
         hsize_t  offset[1];       // hyperslab offset in memory
         hsize_t  count[1];        // size of the hyperslab in memory
-        offset[0] = Offset;
+        offset[0] = iStart;
         count[0]  = nElements;
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 

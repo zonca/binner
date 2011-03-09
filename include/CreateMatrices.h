@@ -96,7 +96,7 @@ void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM)
     }
 }
 
-void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix* P, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix* P, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int err;
 
@@ -115,7 +115,7 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
         GlobalPix[0] = P->GCID(LocalPix[0]);
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
-        err = Mpp->Multiply('T','N', 1., *Prow, *Prow, 0.);
+        err = Mpp->Multiply('T','N', 1./weight, *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }

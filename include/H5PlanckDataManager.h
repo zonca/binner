@@ -12,19 +12,28 @@ class H5PlanckDataManager
 
 {
     private:
-        long TotalLength, LengthPerChannel;
+        long TotalLength, LengthPerChannel, GlobalOffset;
         vector<string> Channels;
         string DataPath;
         string PointingPath;
-        int GlobalOffset;
+        WeightDict Weights;
 
     public:
         H5PlanckDataManager(int firstOd, int lastOd, vector<string> channels, string dataPath, string pointingPath);
-        int getData(long iStart, int nElements, double* data);
-        int getPointing(long iStart, int nElements, pointing_t* pointing);
+        int getData(string channel, long iStart, int nElements, double* data);
+        int getPointing(string channel, long iStart, int nElements, pointing_t* pointing);
+        double getWeight(string channel) {
+            return Weights[channel.substr(0, 5)];
+        }
 
-        double getDatasetLength(void) {
+        long getDatasetLength(void) {
             return TotalLength;
+        };
+        long getLengthPerChannel(void) {
+            return LengthPerChannel;
+        };
+        vector<string> getChannels(void) {
+            return Channels;
         };
         void setDatasetLength(double length) {
             TotalLength = length;

@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/foreach.hpp>
 
 #include "Epetra_ConfigDefs.h"
 #ifdef HAVE_MPI
@@ -93,31 +94,41 @@ cout << time.ElapsedTime() << endl;
 y = new Epetra_Vector(Map);
 y->ExtractView(&data);
 
+double weight = 0;
+
 //LOOP
-for (long offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalElements()) {
+BOOST_FOREACH( string channel, dm->getChannels())
+    {
+        log(Comm.MyPID(), format("Processing channel %s") % channel);
 
-    log(Comm.MyPID(),format("Offset: %d") % offset);
-    P = new Epetra_VbrMatrix(Copy, Map, 1);
-    createP(Map, PixMap, dm, offset, P);
+        weight = dm->getWeight(channel);
+        log(Comm.MyPID(), format("Processing channel %f") % weight);
 
-    log(Comm.MyPID(),"READ DATA");
-    dm->getData(Map.MinMyGID() + offset,Map.NumMyElements(),data);
+        for (long offset=0; offset<dm->getLengthPerChannel(); offset=offset+Map.NumGlobalElements()) {
 
-    cout << time.ElapsedTime() << endl;
+            log(Comm.MyPID(),format("Offset: %d") % offset);
+            P = new Epetra_VbrMatrix(Copy, Map, 1);
+            createP(Map, PixMap, dm, offset, P);
 
-    log(Comm.MyPID(),"SUM MAP");
-    P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
-    for (int i=0; i<PixMap.NumMyPoints(); i++) {
-        summap[i] += temp_summap[i];
+            log(Comm.MyPID(),"READ DATA");
+            dm->getData(Map.MinMyGID() + offset,Map.NumMyElements(),data);
+
+            cout << time.ElapsedTime() << endl;
+
+            log(Comm.MyPID(),"SUM MAP");
+            P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
+            for (int i=0; i<PixMap.NumMyPoints(); i++) {
+                summap[i] += w * temp_summap[i];
+            }
+
+            log(Comm.MyPID(),"Creating M");
+            createM(PixMap, Map, P, weight, dm->NSTOKES, invM);
+            delete P;
+            log(Comm.MyPID(),"GlobalAssemble");
+            invM.GlobalAssemble();
+            log(Comm.MyPID(),"GlobalAssemble DONE");
+        }
     }
-
-    log(Comm.MyPID(),"Creating M");
-    createM(PixMap, Map, P, dm->NSTOKES, invM);
-    delete P;
-    log(Comm.MyPID(),"GlobalAssemble");
-    invM.GlobalAssemble();
-    log(Comm.MyPID(),"GlobalAssemble DONE");
-}
 //end LOOP
 delete y;
 //
