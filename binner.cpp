@@ -29,12 +29,12 @@ using namespace std;
 using namespace H5;
 using boost::format;
 
-int WriteH5Vec(Epetra_Vector& vec, string filename) {
+int WriteH5Vec(Epetra_Vector& vec, string filename, int NPIX) {
     int MyPID = vec.Comm().MyPID();
     H5std_string  FILE_NAME( str( format("%s_%03d.h5") % filename % MyPID ) );
     H5File file(FILE_NAME, H5F_ACC_TRUNC );
     hsize_t dimsf[1];
-    dimsf[0] = vec.Map().NumMyElements();
+    dimsf[0] = vec.Map().NumMyPoints();
     DataSpace dataspace( 1, dimsf );
     DataSet dataset = file.createDataSet( "Vector", PredType::NATIVE_DOUBLE, dataspace );
     double * data;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
-int SAMPLES_PER_PROC = 1000000;
+int SAMPLES_PER_PROC = 4000000;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -62,7 +62,7 @@ H5PlanckDataManager* dm;
 string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);
 
-log(Comm.MyPID(), format("Number of elements: %d") % dm->getDatasetLength());
+log(Comm.MyPID(), format("Number of elements: %.10d") % dm->getDatasetLength());
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
 Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
 
@@ -106,7 +106,7 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
 
     log(Comm.MyPID(),"SUM MAP");
     P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
-    for (int i=0; i<PixMap.NumMyElements(); i++) {
+    for (int i=0; i<PixMap.NumMyPoints(); i++) {
         summap[i] += temp_summap[i];
     }
     delete y;
@@ -121,29 +121,28 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
 //end LOOP
 //
 log(Comm.MyPID(),"HITMAP");
-MapWriter mapwriter(PixMap, Comm, dm->getNPIX());
 Epetra_Vector * hitmap;
 hitmap = new Epetra_Vector(PixMap);
 createHitmap(PixMap, *hitmap, invM);
-WriteH5Vec(*hitmap, "hitmap.fits");
+WriteH5Vec(*hitmap, "hitmap", dm->getNPIX());
 delete hitmap;
-//
-//Epetra_Vector binmap(PixMap);
-//log(Comm.MyPID(),"Computing RCOND and Inverting");
-//Epetra_Vector rcond(PixMap);
-//invertM(PixMap, invM, rcond);
-//
-//cout << time.ElapsedTime() << endl;
-//
-//log(Comm.MyPID(),"BINMAP");
-//invM.Apply(summap, binmap);
-//
-//log(Comm.MyPID(),"Writing MAPS");
-//
-//mapwriter.write(binmap, "binmap.fits");
-//mapwriter.write(rcond, "rcondmap.fits");
-//mapwriter.write(summap, "summap.fits");
-//cout << time.ElapsedTime() << endl;
+WriteH5Vec(summap, "summap", dm->getNPIX());
+
+Epetra_Vector binmap(PixMap);
+log(Comm.MyPID(),"Computing RCOND and Inverting");
+Epetra_Vector rcond(PixMap);
+invertM(PixMap, invM, rcond);
+
+cout << time.ElapsedTime() << endl;
+
+log(Comm.MyPID(),"BINMAP");
+invM.Apply(summap, binmap);
+
+log(Comm.MyPID(),"Writing MAPS");
+
+WriteH5Vec(binmap, "binmap", dm->getNPIX());
+WriteH5Vec(rcond, "rcondmap", dm->getNPIX());
+cout << time.ElapsedTime() << endl;
 
 #ifdef HAVE_MPI
   MPI_Finalize();

@@ -52,6 +52,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
     dataset.read( odstart, PredType::NATIVE_INT, memspace, dataspace );
 
     LengthPerChannel = odstart[0];
+    //LengthPerChannel = 3000000 * 6 / 4.;
     TotalLength = LengthPerChannel * Channels.size(); //computed from last OD - first OD
 
 };
@@ -60,7 +61,9 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
     int NPIX = getNPIX();
+    cout << "NPIX" << NPIX;
     if (iStart >= TotalLength) {
+        cout << "istart over " << iStart << endl;
         for (int i=0; i<nElements; i++) {
             pointing[i].pix = NPIX;
             pointing[i].qw = 0.;
@@ -68,17 +71,19 @@ int H5PlanckDataManager::getPointing(long iStart, int nElements, pointing_t* poi
         }
     } else {
 
-        if (iStart + nElements >= TotalLength) {
+        cout << "istart + nELEm " << iStart + nElements << endl;
+        if (iStart + nElements > TotalLength) {
             for (int i=0; i<nElements; i++) {
                 pointing[i].pix = NPIX;
-                pointing[i].qw = 0.;
-                pointing[i].uw = 0.;
+                pointing[i].qw = 0.5;
+                pointing[i].uw = 0.5;
             }
             nElements = TotalLength - iStart;
+            cout << "istart " << iStart << "new nElem " << nElements << endl;
         }
 
         string channel = Channels[iStart/LengthPerChannel];
-        //cout << "Channel " << channel << endl;
+        cout << "Channel " << channel << endl;
         int Offset = iStart % LengthPerChannel; 
 
         DataSet dataset = file.openDataSet( channel );
