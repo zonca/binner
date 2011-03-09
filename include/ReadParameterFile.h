@@ -16,8 +16,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     dataPath = "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx4_30.h5";
 
     NSIDE = 1024;
-    firstOD = 92;
-    lastOD = 92;
+    firstOD = 91;
+    lastOD = 453;
 
     if (DEBUG) {
         pointingPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";

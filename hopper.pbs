@@ -1,8 +1,8 @@
 #PBS -S /bin/bash
-#PBS -l mppwidth=504 
-#PBS -l walltime=00:30:00
+#PBS -l mppwidth=120 
+#PBS -l walltime=03:30:00
 #PBS -N binner
-#PBS -q debug
+#PBS -q regular
 #PBS -m abe
 #PBS -o binner.oe
 #PBS -j oe
@@ -12,4 +12,4 @@ ulimit -s unlimited
 
 cd $PBS_O_WORKDIR
 rm *.fits
-time aprun -n 504 ./binner > log.txt
+time aprun -n 120 ./binner &> log.txt

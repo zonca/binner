@@ -33,11 +33,12 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
     int NumMyElements = Map.NumMyElements();
     int err;
 
-    boost::scoped_array<pointing_t> pointing(new pointing_t[NumMyElements]);
+    pointing_t * pointing;
+    pointing = new pointing_t[NumMyElements];
     log(MyPID, "Reading pointing");
 
     cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
-    dm->getPointing(Map.MinMyGID() + offset, NumMyElements, pointing.get());
+    dm->getPointing(Map.MinMyGID() + offset, NumMyElements, pointing);
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
@@ -71,6 +72,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
             }
     }
 
+    delete[] pointing;
     log(MyPID, "FillComplete P");
     P->FillComplete(PixMap, Map);
     log(MyPID, "FillComplete P done");

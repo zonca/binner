@@ -89,18 +89,19 @@ invM.GlobalAssemble();
 log(Comm.MyPID(),"GlobalAssemble DONE");
 cout << time.ElapsedTime() << endl;
 
+//data = new double[Map.NumMyElements()];
+y = new Epetra_Vector(Map);
+y->ExtractView(&data);
+
 //LOOP
-for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalElements()) {
+for (long offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalElements()) {
 
     log(Comm.MyPID(),format("Offset: %d") % offset);
     P = new Epetra_VbrMatrix(Copy, Map, 1);
     createP(Map, PixMap, dm, offset, P);
 
     log(Comm.MyPID(),"READ DATA");
-    data = new double[Map.NumMyElements()];
     dm->getData(Map.MinMyGID() + offset,Map.NumMyElements(),data);
-    y = new Epetra_Vector(Copy,Map,data);
-    delete[] data;
 
     cout << time.ElapsedTime() << endl;
 
@@ -109,16 +110,16 @@ for (int offset=0; offset<dm->getDatasetLength(); offset=offset+Map.NumGlobalEle
     for (int i=0; i<PixMap.NumMyPoints(); i++) {
         summap[i] += temp_summap[i];
     }
-    delete y;
 
     log(Comm.MyPID(),"Creating M");
     createM(PixMap, Map, P, dm->NSTOKES, invM);
+    delete P;
     log(Comm.MyPID(),"GlobalAssemble");
     invM.GlobalAssemble();
     log(Comm.MyPID(),"GlobalAssemble DONE");
-    delete P;
 }
 //end LOOP
+delete y;
 //
 log(Comm.MyPID(),"HITMAP");
 Epetra_Vector * hitmap;
