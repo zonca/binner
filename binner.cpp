@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
-int SAMPLES_PER_PROC = 4000000;
+int SAMPLES_PER_PROC = 3.868 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -63,7 +63,8 @@ H5PlanckDataManager* dm;
 string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);
 
-log(Comm.MyPID(), format("Number of elements: %.10d") % dm->getDatasetLength());
+log(Comm.MyPID(), format("Number of elements [mil]: %.10d") % (dm->getDatasetLength()/1.e6));
+log(Comm.MyPID(), format("Elements per channel [mil]: %.10d") % (dm->getLengthPerChannel()/1.e6));
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
 Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
 
@@ -102,23 +103,23 @@ BOOST_FOREACH( string channel, dm->getChannels())
         log(Comm.MyPID(), format("Processing channel %s") % channel);
 
         weight = dm->getWeight(channel);
-        log(Comm.MyPID(), format("Processing channel %f") % weight);
+        log(Comm.MyPID(), format("Weight %f") % weight);
 
         for (long offset=0; offset<dm->getLengthPerChannel(); offset=offset+Map.NumGlobalElements()) {
 
-            log(Comm.MyPID(),format("Offset: %d") % offset);
+            log(Comm.MyPID(),format("Offset [mil]: %d") % (offset/1.e6));
             P = new Epetra_VbrMatrix(Copy, Map, 1);
-            createP(Map, PixMap, dm, offset, P);
+            createP(channel, Map, PixMap, dm, offset, P);
 
             log(Comm.MyPID(),"READ DATA");
-            dm->getData(Map.MinMyGID() + offset,Map.NumMyElements(),data);
+            dm->getData(channel, Map.MinMyGID() + offset,Map.NumMyElements(),data);
 
             cout << time.ElapsedTime() << endl;
 
             log(Comm.MyPID(),"SUM MAP");
             P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
             for (int i=0; i<PixMap.NumMyPoints(); i++) {
-                summap[i] += w * temp_summap[i];
+                summap[i] += weight * temp_summap[i];
             }
 
             log(Comm.MyPID(),"Creating M");

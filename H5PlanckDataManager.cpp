@@ -13,6 +13,7 @@
 
 #include "H5PlanckDataManager.h"
 
+
 using boost::format;
 using namespace std;
 using namespace H5;
@@ -61,7 +62,6 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
     int NPIX = getNPIX();
-    cout << "NPIX" << NPIX;
     if (iStart >= LengthPerChannel) {
         cout << "istart over " << iStart << endl;
         for (int i=0; i<nElements; i++) {
@@ -71,19 +71,18 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         }
     } else {
 
-        cout << "istart + nELEm " << iStart + nElements << endl;
+        //cout << "istart + nELEm " << iStart + nElements << endl;
         if (iStart + nElements > LengthPerChannel) {
             for (int i=0; i<nElements; i++) {
                 pointing[i].pix = NPIX-1;
                 pointing[i].qw = 0;
                 pointing[i].uw = 0;
             }
-            nElements = TotalLength - iStart;
-            cout << "istart " << iStart << "new nElem " << nElements << endl;
+            nElements = LengthPerChannel - iStart;
+            cout << "istart " << iStart << " new nElem " << nElements << endl;
         }
 
-        cout << "Channel " << channel << endl;
-
+        //cout << "Channel " << channel << endl;
         DataSet dataset = file.openDataSet( channel );
 
         //DATASPACE
@@ -114,24 +113,21 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
     return 0;
 }
 
-int H5PlanckDataManager::getData(long iStart, int nElements, double* data){
+int H5PlanckDataManager::getData(string channel, long iStart, int nElements, double* data){
     H5File file( DataPath, H5F_ACC_RDONLY );
 
-    if (iStart >= TotalLength) {
+    if (iStart >= LengthPerChannel) {
         for (int i=0; i<nElements; i++) {
             data[i] = 0;
         }
     } else {
 
-        if (iStart + nElements >= TotalLength) {
+        if (iStart + nElements >= LengthPerChannel) {
             for (int i=0; i<nElements; i++) {
                 data[i] = 0;
             }
-            nElements = TotalLength - iStart;
+            nElements = LengthPerChannel - iStart;
         }
-
-        string channel = Channels[iStart/LengthPerChannel];
-        int Offset = iStart % LengthPerChannel; 
 
         DataSet dataset = file.openDataSet( channel );
 
@@ -139,7 +135,7 @@ int H5PlanckDataManager::getData(long iStart, int nElements, double* data){
         DataSpace dataspace = dataset.getSpace();
         hsize_t  offset[1];       // hyperslab offset in memory
         hsize_t  count[1];        // size of the hyperslab in memory
-        offset[0] = Offset;
+        offset[0] = iStart;
         count[0]  = nElements;
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 

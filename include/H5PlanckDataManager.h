@@ -4,9 +4,12 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <map>
 using namespace std;
 #include "H5Cpp.h"
 #include "PointingStruct.h"
+
+typedef map<string, double> WeightDict;
 
 class H5PlanckDataManager
 
@@ -19,7 +22,7 @@ class H5PlanckDataManager
         WeightDict Weights;
 
     public:
-        H5PlanckDataManager(int firstOd, int lastOd, vector<string> channels, string dataPath, string pointingPath);
+        H5PlanckDataManager(int firstOd, int lastOd, vector<string> channels, string dataPath, string pointingPath, WeightDict Weights);
         int getData(string channel, long iStart, int nElements, double* data);
         int getPointing(string channel, long iStart, int nElements, pointing_t* pointing);
         double getWeight(string channel) {

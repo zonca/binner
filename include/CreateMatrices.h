@@ -25,7 +25,7 @@
 
 using namespace std;
 
-void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, int offset,Epetra_VbrMatrix* P) {
+void createP(string channel, const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, int offset,Epetra_VbrMatrix* P) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -38,7 +38,7 @@ void createP(const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5Planck
     log(MyPID, "Reading pointing");
 
     cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
-    dm->getPointing(Map.MinMyGID() + offset, NumMyElements, pointing);
+    dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pointing);
 
     boost::scoped_array<double> Values(new double[dm->NSTOKES]);
 
@@ -115,13 +115,12 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
         GlobalPix[0] = P->GCID(LocalPix[0]);
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
-        err = Mpp->Multiply('T','N', 1./weight, *Prow, *Prow, 0.);
+        err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
         invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
-        //invM.BeginSumIntoLocalValues(GlobalPix[0], 1, GlobalPix);
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
                 if (err != 0) {
