@@ -73,6 +73,7 @@ int NumMyElements = Map.NumMyElements();
 cout << Comm.MyPID() << " " << Map.MinMyGID() << " " << NumMyElements << endl;
 
 Epetra_Map PixMap(dm->getNPIX(),0,Comm);
+Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
 
 // declaring matrices
 log(Comm.MyPID(),"POINTING MATRIX");
@@ -89,13 +90,13 @@ Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
 
 // initialize M
 log(Comm.MyPID(),"Initializing M");
-initM(PixMap, dm->NSTOKES, invM);
+initM(PixBlockMap, dm->NSTOKES, invM);
 log(Comm.MyPID(),"GlobalAssemble");
 invM.GlobalAssemble();
 log(Comm.MyPID(),"GlobalAssemble DONE");
 cout << time.ElapsedTime() << endl;
 
-//data = new double[Map.NumMyElements()];
+data = new double[Map.NumMyElements()];
 y = new Epetra_Vector(Map);
 y->ExtractView(&data);
 
@@ -145,12 +146,12 @@ BOOST_FOREACH( string channel, dm->getChannels())
                 (*(summap(2)))[i] += weight * temp_summap[i];
             }
 
-            //log(Comm.MyPID(),"Creating M");
-            createM(PixMap, Map, PQ, PU, weight, dm->NSTOKES, invM);
+            log(Comm.MyPID(),"Creating M");
+            createM(PixBlockMap, Map, PQ, PU, weight, dm->NSTOKES, invM);
             delete PQ;
             delete PU;
             delete Graph;
-            log(Comm.MyPID(),"GlobalAssemble");
+            log(Comm.MyPID(),"GlobalAssemble M");
             invM.GlobalAssemble();
             log(Comm.MyPID(),"GlobalAssemble DONE");
         }

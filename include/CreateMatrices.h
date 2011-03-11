@@ -86,29 +86,29 @@ void createP(string channel, const Epetra_Map& Map, const Epetra_Map& PixMap, H5
     delete[] pointing;
 }
 
-void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void initM(const Epetra_BlockMap& PixBlockMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int BlockIndices[1];
-    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    int * PixMyGlobalElements = PixBlockMap.MyGlobalElements();
     int err;
     boost::scoped_ptr<Epetra_SerialDenseMatrix> Zero (new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES));
 
-    for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pixel
+    for( int i=0 ; i<PixBlockMap.NumMyElements(); ++i ) { //loop on local pixel
         BlockIndices[0] = PixMyGlobalElements[i];
         invM.BeginInsertGlobalValues(BlockIndices[0], 1, BlockIndices);
         err = invM.SubmitBlockEntry(Zero->A(), Zero->LDA(), NSTOKES, NSTOKES);
                 if (err != 0) {
-                    cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
+                    cout << "PID:" << PixBlockMap.Comm().MyPID() << "Error in inserting init zero values in M, error code:" << err << endl;
                     }
         err = invM.EndSubmitEntries();
     }
 }
 
-void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_CrsMatrix* PQ, const Epetra_CrsMatrix* PU, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixBlockMap, const Epetra_BlockMap& Map, const Epetra_CrsMatrix* PQ, const Epetra_CrsMatrix* PU, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int err;
 
-    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    int * PixMyGlobalElements = PixBlockMap.MyGlobalElements();
     int NumEntries;
     int LocalPix[1];
     double Values[1];
@@ -121,30 +121,33 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
         PQ->ExtractMyRowCopy(i, 1, NumEntries, Values, LocalPix);
-        (*Prow)(0,1) = Values[0];
+        (*Prow)(0,1) = 2. ;//Values[0];
 
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
         PU->ExtractMyRowCopy(i, 1, NumEntries, Values);
-        (*Prow)(0,2) = Values[0];
+        (*Prow)(0,2) = 3.; //Values[0];
 
-        GlobalPix[0] = PQ->GCID(LocalPix[0]);
+        GlobalPix[0] = 0; //PQ->GCID(LocalPix[0]);
 
         err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
+        if (Map.Comm().MyPID() == 0) {
+        cout << (*Mpp) << endl;
+}
         invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES);
                 if (err != 0) {
-                    cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
+                    cout << "PID:" << PixBlockMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
                     }
 
         err = invM.EndSubmitEntries();
                 if (err != 0) {
-                    cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
+                    cout << "PID:" << PixBlockMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
                     }
 
     }
