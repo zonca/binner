@@ -12,7 +12,7 @@ elseif ($ENV{NERSC_HOST} STREQUAL hopper2)
 
     include_directories("../include" "./include" "/opt/cray/trilinos/10.6.2.0/PGI/include/" "/usr/common/usg/boost/1.45" )
 
-    link_directories("/opt/cray/trilinos/10.6.2.0/PGI/lib" "/usr/common/usg/cfitsio/3.26/lib")
+    link_directories("/opt/cray/trilinos/10.6.2.0/PGI/lib")
 elseif ($ENV{NERSC_HOST} STREQUAL canopus)
 
     include_directories("../include" "./include" "/usr/include/trilinos/" "/usr/include/openmpi")
@@ -30,15 +30,17 @@ if ($ENV{NERSC_HOST} STREQUAL carver)
     target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
 elseif($ENV{NERSC_HOST} STREQUAL hopper2)
-    set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
-    set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
+    #set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
+    #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 
-    target_link_libraries(binner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
+    target_link_libraries(binner H5PlanckDataManager epetra hdf5 hdf5_cpp)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(binner H5PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext hdf5 hdf5_cpp)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)
+
+set(CMAKE_BUILD_TYPE Release)
 
 # TEST
 ENABLE_TESTING()

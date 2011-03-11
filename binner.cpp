@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
 int MyPID = Comm.MyPID();
 
-int SAMPLES_PER_PROC = 11.1 * 1e6;
+int SAMPLES_PER_PROC = 5.55 * 1e6 / 2;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
