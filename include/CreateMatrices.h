@@ -104,24 +104,31 @@ void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM)
     }
 }
 
-void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_VbrMatrix* P, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Epetra_CrsMatrix* PQ, const Epetra_CrsMatrix* PU, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
 
     int err;
 
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
-    Epetra_SerialDenseMatrix *Prow;
-    int RowDim, NumBlockEntries;
-    int * LocalPix;
+    int NumEntries;
+    int LocalPix[1];
+    double Values[1];
 
     boost::scoped_array<int> GlobalPix (new int[1]);
     boost::scoped_ptr<Epetra_SerialDenseMatrix> Mpp (new Epetra_SerialDenseMatrix(NSTOKES, NSTOKES));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> Prow (new Epetra_SerialDenseMatrix(1, NSTOKES));
+    (*Prow)(0,0) = 1.;
 
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
-        P->BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, LocalPix);
-        P->ExtractEntryView(Prow);
-        GlobalPix[0] = P->GCID(LocalPix[0]);
+        PQ->ExtractMyRowCopy(i, 1, NumEntries, Values, LocalPix);
+        (*Prow)(0,1) = Values[0];
+
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
+
+        PU->ExtractMyRowCopy(i, 1, NumEntries, Values);
+        (*Prow)(0,2) = Values[0];
+
+        GlobalPix[0] = PQ->GCID(LocalPix[0]);
 
         err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
             if (err != 0) {
@@ -130,7 +137,7 @@ void createM(const Epetra_BlockMap& PixMap, const Epetra_BlockMap& Map, const Ep
 
         invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
 
-        err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES); //FIXME check order
+        err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES);
                 if (err != 0) {
                     cout << "PID:" << PixMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
                     }

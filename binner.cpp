@@ -146,11 +146,13 @@ BOOST_FOREACH( string channel, dm->getChannels())
             }
 
             //log(Comm.MyPID(),"Creating M");
-            //createM(PixMap, Map, P, weight, dm->NSTOKES, invM);
-            //delete P;
-            //log(Comm.MyPID(),"GlobalAssemble");
-            //invM.GlobalAssemble();
-            //log(Comm.MyPID(),"GlobalAssemble DONE");
+            createM(PixMap, Map, PQ, PU, weight, dm->NSTOKES, invM);
+            delete PQ;
+            delete PU;
+            delete Graph;
+            log(Comm.MyPID(),"GlobalAssemble");
+            invM.GlobalAssemble();
+            log(Comm.MyPID(),"GlobalAssemble DONE");
         }
     }
 //end LOOP
