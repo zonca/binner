@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
 int MyPID = Comm.MyPID();
 
-int SAMPLES_PER_PROC = 2.5 * 1e6;
+int SAMPLES_PER_PROC = 11.1 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -160,7 +160,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
 
             log(MyPID, "Create M");
             time.ResetStartTime();
-            createM(PixBlockMap, Map, PQ, PU, weight, dm->NSTOKES, invM);
+            createM(PixBlockMap, Map, PQ, PU, weight, dm->NSTOKES, dm->getNPIX(), invM);
             log(MyPID, format("Create M timer %f") % time.ElapsedTime());
             delete PQ;
             delete PU;
