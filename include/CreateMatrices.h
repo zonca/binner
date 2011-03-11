@@ -21,6 +21,7 @@
 #include "Epetra_VbrMatrix.h"
 #include "Epetra_FEVbrMatrix.h"
 #include <Epetra_SerialDenseSolver.h>
+#include "Epetra_Time.h"
 
 #include "H5PlanckDataManager.h"
 #include "Utils.h"
@@ -39,7 +40,7 @@ void createP(string channel, const Epetra_Map& Map, const Epetra_Map& PixMap, H5
     pointing = new pointing_t[NumMyElements];
     log(MyPID, "Reading pointing");
 
-    cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
+    //cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
     dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pointing);
 
     boost::scoped_array<double> Values(new double[1]);
@@ -104,9 +105,12 @@ void initM(const Epetra_BlockMap& PixBlockMap, int NSTOKES, Epetra_FEVbrMatrix& 
     }
 }
 
-void createM(const Epetra_BlockMap& PixBlockMap, const Epetra_BlockMap& Map, const Epetra_CrsMatrix* PQ, const Epetra_CrsMatrix* PU, double weight, int NSTOKES, Epetra_FEVbrMatrix& invM) {
+void createM(const Epetra_BlockMap& PixBlockMap, const Epetra_BlockMap& Map, const Epetra_CrsMatrix* PQ, const Epetra_CrsMatrix* PU, double weight, int NSTOKES, int NPIX, Epetra_FEVbrMatrix& invM) {
 
     int err;
+
+    
+    int MyPID = Map.Comm().MyPID();
 
     int * PixMyGlobalElements = PixBlockMap.MyGlobalElements();
     int NumEntries;
@@ -121,32 +125,36 @@ void createM(const Epetra_BlockMap& PixBlockMap, const Epetra_BlockMap& Map, con
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
         PQ->ExtractMyRowCopy(i, 1, NumEntries, Values, LocalPix);
-        (*Prow)(0,1) = Values[0];
+        GlobalPix[0] = PQ->GCID(LocalPix[0]);
 
-        //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
+        if (GlobalPix[0] != NPIX) { 
 
-        PU->ExtractMyRowCopy(i, 1, NumEntries, Values);
-        (*Prow)(0,2) = Values[0];
+            (*Prow)(0,1) = Values[0];
 
-        GlobalPix[0] = 1000;//PQ->GCID(LocalPix[0]);
+            //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
-        err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
-            if (err != 0) {
-                cout << "Error in computing Mpp, error code:" << err << endl;
-                }
+            PU->ExtractMyRowCopy(i, 1, NumEntries, Values);
+            (*Prow)(0,2) = Values[0];
 
-        invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
 
-        err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES);
+            err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
                 if (err != 0) {
-                    cout << "PID:" << PixBlockMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
+                    cout << "Error in computing Mpp, error code:" << err << endl;
                     }
 
-        err = invM.EndSubmitEntries();
-                if (err != 0) {
-                    cout << "PID:" << PixBlockMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
-                    }
+            invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
 
+            err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES);
+                    if (err != 0) {
+                        cout << "PID:" << PixBlockMap.Comm().MyPID() << "Error in inserting values in M, error code:" << err << endl;
+                        }
+
+            err = invM.EndSubmitEntries();
+                    if (err != 0) {
+                        cout << "PID:" << PixBlockMap.Comm().MyPID() << " LocalRow[i]:" << i << " Error in ending submit entries in M, error code:" << err << endl;
+                        }
+
+        }
     }
 
 }
@@ -172,9 +180,9 @@ void createHitmap(const Epetra_BlockMap& PixMap, Epetra_Vector& hitmap, Epetra_F
     }
 }
 
-void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
+void invertM(const Epetra_BlockMap& PixBlockMap, Epetra_FEVbrMatrix& invM, Epetra_Vector& rcond) {
 
-    int * PixMyGlobalElements = PixMap.MyGlobalElements();
+    int * PixMyGlobalElements = PixBlockMap.MyGlobalElements();
     boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
 
     double rcond_blockM;
@@ -185,24 +193,24 @@ void invertM(const Epetra_BlockMap& PixMap, Epetra_FEVbrMatrix& invM, Epetra_Vec
 
     int RowDim, NumBlockEntries;
     int *BlockIndicesOut;
-    for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
+    for( int i=0 ; i<PixBlockMap.NumMyElements(); ++i ) { //loop on local pointing
 
         invM.BeginExtractMyBlockRowView(i, RowDim, NumBlockEntries, BlockIndicesOut);
         invM.ExtractEntryView(blockM);
 
         SSolver->SetMatrix(*blockM);
-        //cout << "PID:" << Comm.MyPID() << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
+        //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
         if ((*blockM)(0,0) > 0) {
             //rcond_blockM = PixMyGlobalElements[i];
             err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
             if (err != 0) {
-                cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
+                cout << "PID:" << PixBlockMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
                 rcond_blockM = -2;
             }
             if (rcond_blockM > 1e-5) {
                 err = SSolver->Invert();
                 if (err != 0) {
-                    cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
+                    cout << "PID:" << PixBlockMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
                     rcond_blockM = -3;
                 }
             }
