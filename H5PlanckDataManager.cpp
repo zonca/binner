@@ -58,26 +58,16 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 
 };
 
-int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements, pointing_t* pointing){
+int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements, int * pix, double * qw, double * uw){
      H5File file( PointingPath, H5F_ACC_RDONLY );
 
     int NPIX = getNPIX();
     if (iStart >= LengthPerChannel) {
         cout << "istart over " << iStart << endl;
-        for (int i=0; i<nElements; i++) {
-            pointing[i].pix = NPIX-1;
-            pointing[i].qw = 0.;
-            pointing[i].uw = 0.;
-        }
     } else {
 
         //cout << "istart + nELEm " << iStart + nElements << endl;
         if (iStart + nElements > LengthPerChannel) {
-            for (int i=0; i<nElements; i++) {
-                pointing[i].pix = NPIX-1;
-                pointing[i].qw = 0;
-                pointing[i].uw = 0;
-            }
             nElements = LengthPerChannel - iStart;
             cout << "istart " << iStart << " new nElem " << nElements << endl;
         }
@@ -103,12 +93,17 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         DataSpace memspace( 1, dimsm );
         memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
 
-        CompType pointing_h5type( sizeof(pointing_t) );
-        pointing_h5type.insertMember( MEMBER1, HOFFSET(pointing_t, pix), PredType::NATIVE_INT);
-        pointing_h5type.insertMember( MEMBER2, HOFFSET(pointing_t, qw), PredType::NATIVE_DOUBLE);
-        pointing_h5type.insertMember( MEMBER3, HOFFSET(pointing_t, uw), PredType::NATIVE_DOUBLE);
+        CompType pointing_h5type( sizeof(int) );
+        pointing_h5type.insertMember( MEMBER1, 0, PredType::NATIVE_INT);
+        dataset.read(pix, pointing_h5type, memspace, dataspace );
 
-        dataset.read( pointing, pointing_h5type, memspace, dataspace );
+        CompType pointing_h5typeqw( sizeof(double) );
+        pointing_h5typeqw.insertMember( MEMBER2, 0, PredType::NATIVE_DOUBLE);
+        dataset.read(qw, pointing_h5typeqw, memspace, dataspace );
+
+        CompType pointing_h5typeuw( sizeof(double) );
+        pointing_h5typeuw.insertMember( MEMBER3, 0, PredType::NATIVE_DOUBLE);
+        dataset.read(uw, pointing_h5typeuw, memspace, dataspace );
     }
     return 0;
 }
@@ -116,16 +111,8 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
 int H5PlanckDataManager::getData(string channel, long iStart, int nElements, double* data){
     H5File file( DataPath, H5F_ACC_RDONLY );
 
-    if (iStart >= LengthPerChannel) {
-        for (int i=0; i<nElements; i++) {
-            data[i] = 0;
-        }
-    } else {
-
+    if (iStart < LengthPerChannel) {
         if (iStart + nElements >= LengthPerChannel) {
-            for (int i=0; i<nElements; i++) {
-                data[i] = 0;
-            }
             nElements = LengthPerChannel - iStart;
         }
 

@@ -28,7 +28,7 @@
 
 using namespace std;
 
-void createP(string channel, const Epetra_Map& Map, const Epetra_Map& PixMap, H5PlanckDataManager* dm, int offset, Epetra_CrsMatrix* &PQ, Epetra_CrsMatrix* &PU, Epetra_CrsGraph* &Graph) {
+int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_IntVector & pix, Epetra_CrsGraph* &Graph) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -36,55 +36,24 @@ void createP(string channel, const Epetra_Map& Map, const Epetra_Map& PixMap, H5
     int NumMyElements = Map.NumMyElements();
     int err;
 
-    pointing_t * pointing;
-    pointing = new pointing_t[NumMyElements];
-    log(MyPID, "Reading pointing");
-
-    //cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
-    dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pointing);
-
     boost::scoped_array<double> Values(new double[1]);
-
     int Indices[1];
 
     Graph = new Epetra_CrsGraph(Copy, Map, 1, true);
-    int GlobalRow;
+
     log(MyPID, "Assembling Graph");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
-            GlobalRow = MyGlobalElements[i];
-            Indices[0] = pointing[i].pix;
+            Indices[0] = pix[i];
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
-            Graph->InsertGlobalIndices(GlobalRow, 1, Indices);
+            Graph->InsertGlobalIndices(MyGlobalElements[i], 1, Indices);
     }
+
     log(MyPID, "FillComplete Graph");
     Graph->FillComplete(PixMap, Map);
     log(MyPID, "FillComplete Graph done");
     Graph->OptimizeStorage();
     log(MyPID, "OptimizeStorage Graph done");
-
-    log(MyPID, "Assembling PQ PU");
-    PQ = new Epetra_CrsMatrix(Copy, *Graph);
-    PU = new Epetra_CrsMatrix(Copy, *Graph);
-    PQ->FillComplete();
-    PU->FillComplete();
-    log(MyPID, "PQ PU Fillcompleted");
-
-    for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
-            //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
-            GlobalRow = MyGlobalElements[i];
-            Values[0] = pointing[i].qw;
-            Indices[0] = pointing[i].pix;
-            err = PQ->ReplaceGlobalValues(GlobalRow, 1, Values.get(), Indices);
-            if (err != 0) {
-                cout << "Error in replacing values in PQ, error code:" << err << endl;
-            }
-            Values[0] = pointing[i].uw;
-            err = PU->ReplaceGlobalValues(GlobalRow, 1, Values.get(), Indices);
-            if (err != 0) {
-                cout << "Error in replacing values in PU, error code:" << err << endl;
-            }
-    }
-    delete[] pointing;
+    return 0;
 }
 
 void initM(const Epetra_BlockMap& PixBlockMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {

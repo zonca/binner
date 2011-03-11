@@ -24,7 +24,7 @@ class H5PlanckDataManager
     public:
         H5PlanckDataManager(int firstOd, int lastOd, vector<string> channels, string dataPath, string pointingPath, WeightDict Weights);
         int getData(string channel, long iStart, int nElements, double* data);
-        int getPointing(string channel, long iStart, int nElements, pointing_t* pointing);
+        int getPointing(string channel, long iStart, int nElements, int * pix, double * qw, double * uw);
         double getWeight(string channel) {
             return Weights[channel.substr(0, 5)];
         }
