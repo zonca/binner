@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
-int SAMPLES_PER_PROC = 2. * 1e6;
+int SAMPLES_PER_PROC = .2 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -86,7 +86,7 @@ Epetra_CrsGraph * Graph;
 Epetra_Vector * y;
 double* data; 
 
-Epetra_FEVbrMatrix invM(Copy, PixMap, 1);
+Epetra_FEVbrMatrix invM(Copy, PixBlockMap, 1);
 
 // initialize M
 log(Comm.MyPID(),"Initializing M");

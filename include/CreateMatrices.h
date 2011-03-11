@@ -121,23 +121,20 @@ void createM(const Epetra_BlockMap& PixBlockMap, const Epetra_BlockMap& Map, con
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local pointing
 
         PQ->ExtractMyRowCopy(i, 1, NumEntries, Values, LocalPix);
-        (*Prow)(0,1) = 2. ;//Values[0];
+        (*Prow)(0,1) = Values[0];
 
         //cout << Map.Comm().MyPID() << ": i:" << i << " Loc:" << LocalPix[0] << " Glob:" << GlobalPix[0] << " " << endl;
 
         PU->ExtractMyRowCopy(i, 1, NumEntries, Values);
-        (*Prow)(0,2) = 3.; //Values[0];
+        (*Prow)(0,2) = Values[0];
 
-        GlobalPix[0] = 0; //PQ->GCID(LocalPix[0]);
+        GlobalPix[0] = 1000;//PQ->GCID(LocalPix[0]);
 
         err = Mpp->Multiply('T','N', weight, *Prow, *Prow, 0.);
             if (err != 0) {
                 cout << "Error in computing Mpp, error code:" << err << endl;
                 }
 
-        if (Map.Comm().MyPID() == 0) {
-        cout << (*Mpp) << endl;
-}
         invM.BeginSumIntoGlobalValues(GlobalPix[0], 1, GlobalPix.get());
 
         err = invM.SubmitBlockEntry(Mpp->A(), Mpp->LDA(), NSTOKES, NSTOKES);
