@@ -14,6 +14,7 @@
 #include "Epetra_Map.h"
 #include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
+#include "Epetra_MultiVector.h"
 #include "Epetra_IntVector.h"
 #include "Epetra_DataAccess.h"
 #include "Epetra_Time.h"
@@ -30,12 +31,12 @@ using namespace std;
 using namespace H5;
 using boost::format;
 
-int WriteH5Vec(Epetra_Vector& vec, string filename, int NPIX) {
+int WriteH5Vec(Epetra_Vector& vec, string filename) {
     int MyPID = vec.Comm().MyPID();
     H5std_string  FILE_NAME( str( format("%s_%03d.h5") % filename % MyPID ) );
     H5File file(FILE_NAME, H5F_ACC_TRUNC );
     hsize_t dimsf[1];
-    dimsf[0] = vec.Map().NumMyPoints();
+    dimsf[0] = vec.Map().NumMyElements();
     DataSpace dataspace( 1, dimsf );
     DataSet dataset = file.createDataSet( "Vector", PredType::NATIVE_DOUBLE, dataspace );
     double * data;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
-int SAMPLES_PER_PROC = 3.868 * 1e6;
+int SAMPLES_PER_PROC = 2. * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -71,13 +72,16 @@ Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
 int NumMyElements = Map.NumMyElements();
 cout << Comm.MyPID() << " " << Map.MinMyGID() << " " << NumMyElements << endl;
 
-Epetra_BlockMap PixMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
+Epetra_Map PixMap(dm->getNPIX(),0,Comm);
 
 // declaring matrices
 log(Comm.MyPID(),"POINTING MATRIX");
-Epetra_Vector summap(PixMap);
+Epetra_MultiVector summap(PixMap, dm->NSTOKES);
 Epetra_Vector temp_summap(PixMap);
-Epetra_VbrMatrix * P;
+Epetra_CrsMatrix * Ptemp;
+Epetra_CrsMatrix * PQ;
+Epetra_CrsMatrix * PU;
+Epetra_CrsGraph * Graph; 
 Epetra_Vector * y;
 double* data; 
 
@@ -108,8 +112,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
         for (long offset=0; offset<dm->getLengthPerChannel(); offset=offset+Map.NumGlobalElements()) {
 
             log(Comm.MyPID(),format("Offset [mil]: %d") % (offset/1.e6));
-            P = new Epetra_VbrMatrix(Copy, Map, 1);
-            createP(channel, Map, PixMap, dm, offset, P);
+            createP(channel, Map, PixMap, dm, offset, PQ, PU, Graph);
 
             log(Comm.MyPID(),"READ DATA");
             dm->getData(channel, Map.MinMyGID() + offset,Map.NumMyElements(),data);
@@ -117,45 +120,65 @@ BOOST_FOREACH( string channel, dm->getChannels())
             cout << time.ElapsedTime() << endl;
 
             log(Comm.MyPID(),"SUM MAP");
-            P->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
-            for (int i=0; i<PixMap.NumMyPoints(); i++) {
-                summap[i] += weight * temp_summap[i];
+            Ptemp = new Epetra_CrsMatrix(Copy, *Graph);
+
+            ////// I
+            log(Comm.MyPID(),"I");
+            Ptemp->PutScalar(1.);
+            Ptemp->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
+            for (int i=0; i<PixMap.NumMyElements(); i++) {
+                (*(summap(0)))[i] += weight * temp_summap[i];
+            }
+            delete Ptemp;
+
+            //// Q
+            log(Comm.MyPID(),"Q");
+            PQ->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
+            for (int i=0; i<PixMap.NumMyElements(); i++) {
+                (*(summap(1)))[i] += weight * temp_summap[i];
             }
 
-            log(Comm.MyPID(),"Creating M");
-            createM(PixMap, Map, P, weight, dm->NSTOKES, invM);
-            delete P;
-            log(Comm.MyPID(),"GlobalAssemble");
-            invM.GlobalAssemble();
-            log(Comm.MyPID(),"GlobalAssemble DONE");
+            //// U
+            log(Comm.MyPID(),"U");
+            PQ->Multiply1(true,*y,temp_summap); //SUMMAP = Pt y
+            for (int i=0; i<PixMap.NumMyElements(); i++) {
+                (*(summap(2)))[i] += weight * temp_summap[i];
+            }
+
+            //log(Comm.MyPID(),"Creating M");
+            //createM(PixMap, Map, P, weight, dm->NSTOKES, invM);
+            //delete P;
+            //log(Comm.MyPID(),"GlobalAssemble");
+            //invM.GlobalAssemble();
+            //log(Comm.MyPID(),"GlobalAssemble DONE");
         }
     }
 //end LOOP
 delete y;
 //
-log(Comm.MyPID(),"HITMAP");
-Epetra_Vector * hitmap;
-hitmap = new Epetra_Vector(PixMap);
-createHitmap(PixMap, *hitmap, invM);
-WriteH5Vec(*hitmap, "hitmap", dm->getNPIX());
-delete hitmap;
-WriteH5Vec(summap, "summap", dm->getNPIX());
+//log(Comm.MyPID(),"HITMAP");
+//Epetra_Vector * hitmap;
+//hitmap = new Epetra_Vector(PixMap);
+//createHitmap(PixMap, *hitmap, invM);
+//WriteH5Vec(*hitmap, "hitmap");
+//delete hitmap;
+WriteH5Vec(*summap(0), "summap");
 
-Epetra_Vector binmap(PixMap);
-log(Comm.MyPID(),"Computing RCOND and Inverting");
-Epetra_Vector rcond(PixMap);
-invertM(PixMap, invM, rcond);
-
-cout << time.ElapsedTime() << endl;
-
-log(Comm.MyPID(),"BINMAP");
-invM.Apply(summap, binmap);
-
-log(Comm.MyPID(),"Writing MAPS");
-
-WriteH5Vec(binmap, "binmap", dm->getNPIX());
-WriteH5Vec(rcond, "rcondmap", dm->getNPIX());
-cout << time.ElapsedTime() << endl;
+//Epetra_Vector binmap(PixMap);
+//log(Comm.MyPID(),"Computing RCOND and Inverting");
+//Epetra_Vector rcond(PixMap);
+//invertM(PixMap, invM, rcond);
+//
+//cout << time.ElapsedTime() << endl;
+//
+//log(Comm.MyPID(),"BINMAP");
+//invM.Apply(summap, binmap);
+//
+//log(Comm.MyPID(),"Writing MAPS");
+//
+//WriteH5Vec(binmap, "binmap");
+//WriteH5Vec(rcond, "rcondmap");
+//cout << time.ElapsedTime() << endl;
 
 #ifdef HAVE_MPI
   MPI_Finalize();

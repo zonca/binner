@@ -14,6 +14,8 @@
 #include "Epetra_SerialComm.h"
 #endif
 #include "Epetra_Map.h"
+#include "Epetra_CrsGraph.h"
+#include "Epetra_CrsMatrix.h"
 #include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
 #include "Epetra_VbrMatrix.h"
@@ -25,7 +27,7 @@
 
 using namespace std;
 
-void createP(string channel, const Epetra_BlockMap& Map, const Epetra_BlockMap& PixMap, H5PlanckDataManager* dm, int offset,Epetra_VbrMatrix* P) {
+void createP(string channel, const Epetra_Map& Map, const Epetra_Map& PixMap, H5PlanckDataManager* dm, int offset, Epetra_CrsMatrix* &PQ, Epetra_CrsMatrix* &PU, Epetra_CrsGraph* &Graph) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -40,42 +42,48 @@ void createP(string channel, const Epetra_BlockMap& Map, const Epetra_BlockMap& 
     cout << MyPID << " " << Map.MinMyGID() + offset << " " << NumMyElements << endl;
     dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pointing);
 
-    boost::scoped_array<double> Values(new double[dm->NSTOKES]);
+    boost::scoped_array<double> Values(new double[1]);
 
     int Indices[1];
 
-    log(MyPID, "Assembling P");
+    Graph = new Epetra_CrsGraph(Copy, Map, 1, true);
+    int GlobalRow;
+    log(MyPID, "Assembling Graph");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
-            int GlobalNode = MyGlobalElements[i];
+            GlobalRow = MyGlobalElements[i];
             Indices[0] = pointing[i].pix;
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
-            err = P->BeginInsertGlobalValues(GlobalNode, 1, Indices);
+            Graph->InsertGlobalIndices(GlobalRow, 1, Indices);
+    }
+    log(MyPID, "FillComplete Graph");
+    Graph->FillComplete(PixMap, Map);
+    log(MyPID, "FillComplete Graph done");
+    Graph->OptimizeStorage();
+    log(MyPID, "OptimizeStorage Graph done");
 
+    log(MyPID, "Assembling PQ PU");
+    PQ = new Epetra_CrsMatrix(Copy, *Graph);
+    PU = new Epetra_CrsMatrix(Copy, *Graph);
+    PQ->FillComplete();
+    PU->FillComplete();
+    log(MyPID, "PQ PU Fillcompleted");
+
+    for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
+            //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
+            GlobalRow = MyGlobalElements[i];
+            Values[0] = pointing[i].qw;
+            Indices[0] = pointing[i].pix;
+            err = PQ->ReplaceGlobalValues(GlobalRow, 1, Values.get(), Indices);
             if (err != 0) {
-                cout << "Error in inserting values in P, error code:" << err << endl;
+                cout << "Error in replacing values in PQ, error code:" << err << endl;
             }
-
-            Values[0] = 1.;
-            Values[1] = pointing[i].qw;
-            Values[2] = pointing[i].uw;
-
-            err = P->SubmitBlockEntry(Values.get(), 1, 1, 3);
+            Values[0] = pointing[i].uw;
+            err = PU->ReplaceGlobalValues(GlobalRow, 1, Values.get(), Indices);
             if (err != 0) {
-                cout << "Error in submitting entries for P, error code:" << err << endl;
-            }
-            err = P->EndSubmitEntries();
-            if (err != 0) {
-                cout << "Error in ending submit entries for P, error code:" << err << endl;
-                cout << "INDICES 0: " <<Indices[0] << endl;
-                cout << "GlobalNode:" << GlobalNode<< endl;
-                cout << "VALUES 0: " <<Values[0] << " 1: " << Values[1] << " 2: " << Values[2] << endl;
+                cout << "Error in replacing values in PU, error code:" << err << endl;
             }
     }
-
     delete[] pointing;
-    log(MyPID, "FillComplete P");
-    P->FillComplete(PixMap, Map);
-    log(MyPID, "FillComplete P done");
 }
 
 void initM(const Epetra_BlockMap& PixMap, int NSTOKES, Epetra_FEVbrMatrix& invM) {
