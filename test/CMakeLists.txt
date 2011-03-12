@@ -5,5 +5,5 @@ add_dependencies(check test_test)
 
 add_executable(test_h5planckdatamanager test_h5planckdatamanager.cpp)
 add_test(test_h5planckdatamanager test_h5planckdatamanager)
-target_link_libraries(test_h5planckdatamanager H5PlanckDataManager read_fits_lib hdf5 hdf5_cpp)
+target_link_libraries(test_h5planckdatamanager H5PlanckDataManager hdf5 hdf5_cpp)
 add_dependencies(check test_h5planckdatamanager)
