@@ -35,7 +35,7 @@ elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(binner H5PlanckDataManager trilinos_epetra hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
-set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Release)
 
 # TEST
 ENABLE_TESTING()

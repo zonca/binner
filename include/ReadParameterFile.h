@@ -32,7 +32,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     NSIDE = 1024;
     firstOD = 91;
-    lastOD = 563;
+    lastOD = 110;
 
     if (DEBUG) {
         pointingPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";
@@ -40,7 +40,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         firstOD = 92;
         lastOD = 92;
     } else {
-        pointingPath = "/scratch/scratchdirs/zonca/pointing/dx6_1024_nest_30.h5";
+        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_nest_30.h5") % NSIDE );
     }
     vector<string> channels;
     channels.push_back("LFI27M");
@@ -53,6 +53,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     if (DEBUG) {
         dm->setDatasetLength(1000000);
     }
+    dm->setDatasetLength(240);
     dm->NSIDE = NSIDE;
     dm->NSTOKES = 3;
 }
