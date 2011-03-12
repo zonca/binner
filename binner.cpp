@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
 int MyPID = Comm.MyPID();
 
-int SAMPLES_PER_PROC = 1 * 1e6;
+int SAMPLES_PER_PROC = 1.2 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -68,11 +68,12 @@ readParameterFile(parameterFilename, dm);
 
 log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getDatasetLength()/1.e6));
 log(MyPID, format("Elements per channel [mil]: %.10d") % (dm->getLengthPerChannel()/1.e6));
+log(MyPID, format("Samples per proc [mil]: %.10d") % (SAMPLES_PER_PROC/1.e6));
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
 Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
 
 int NumMyElements = Map.NumMyElements();
-cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
+//cout << MyPID << " " << Map.MinMyGID() << " " << NumMyElements << endl;
 
 Epetra_Map PixMap(dm->getNPIX(),0,Comm);
 Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
@@ -86,12 +87,14 @@ Epetra_Vector hitmap(PixMap);
 Epetra_CrsMatrix * P;
 Epetra_CrsGraph * Graph; 
 
-double *** yqu_view;
 Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
-yqu.ExtractView(yqu_view);
+
+double ** yqu_view = new double *[3];
+yqu.ExtractView(&yqu_view);
+
+Epetra_IntVector pix = Epetra_IntVector(Map);
 
 int * pix_view;
-Epetra_IntVector pix = Epetra_IntVector(Map);
 pix.ExtractView(&pix_view);
 
 Epetra_Vector tempvec = Epetra_Vector(Map);
@@ -107,11 +110,16 @@ BOOST_FOREACH( string channel, dm->getChannels())
         log(MyPID, format("Weight %f") % weight);
 
         for (long offset=0; offset<dm->getLengthPerChannel(); offset=offset+Map.NumGlobalElements()) {
-
             log(MyPID,"READ POINTING");
             time.ResetStartTime();
-            dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pix_view, *(yqu_view[1]), *(yqu_view[2]));
+            dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pix_view, yqu_view[1], yqu_view[2]);
             log(MyPID, format("Read data timer %f") % time.ElapsedTime());
+
+            log(MyPID,"READ DATA");
+            time.ResetStartTime();
+            dm->getData(channel, Map.MinMyGID() + offset,Map.NumMyElements(),yqu_view[0]);
+            log(MyPID, format("Read data timer %f") % time.ElapsedTime());
+
 
             log(MyPID,format("Offset [mil]: %d") % (offset/1.e6));
             time.ResetStartTime();
@@ -122,10 +130,6 @@ BOOST_FOREACH( string channel, dm->getChannels())
             P->PutScalar(1.);
             log(MyPID, format("Create P timer %f") % time.ElapsedTime());
 
-            log(MyPID,"READ DATA");
-            time.ResetStartTime();
-            dm->getData(channel, Map.MinMyGID() + offset,Map.NumMyElements(),*(yqu_view[0]));
-            log(MyPID, format("Read data timer %f") % time.ElapsedTime());
 
             log(MyPID,"SUM MAP");
 
@@ -153,23 +157,23 @@ BOOST_FOREACH( string channel, dm->getChannels())
             }
             log(MyPID, format("%f") % time.ElapsedTime());
 
-            //log(MyPID, "Create M");
-            //for (int j=0; j<dm->NSTOKES; ++j) {
-            //    for (int k=j; k<dm->NSTOKES; ++k) {
-            //        log(MyPID,format("M %d") % j % k);
-            //        time.ResetStartTime();
-            //        if (k == 0) { //also j=0
-            //            tempvec.PutScalar(1.);
-            //        } else if (j == 0 ) {
-            //            tempvec.Update(1., yqu[k], 0.);
-            //        } else {
-            //            tempvec.Multiply(1., yqu[j], yqu[k], 0.);
-            //        }
-            //        P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-            //        M(k + dm->NSTOKES*j)->Update(1., tempmap, weight);
-            //        log(MyPID, format("M %d: %f") % i % time.ElapsedTime());
-            //    }
-            //}
+            log(MyPID, "Create M");
+            for (int j=0; j<dm->NSTOKES; ++j) {
+                for (int k=j; k<dm->NSTOKES; ++k) {
+                    log(MyPID,format("M %d %d") % j % k);
+                    time.ResetStartTime();
+                    if (k == 0) { //also j=0
+                        tempvec.PutScalar(1.);
+                    } else if (j == 0 ) {
+                        tempvec.Update(1., *(yqu(k)), 0.);
+                    } else {
+                        tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
+                    }
+                    P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+                    M(k + dm->NSTOKES*j)->Update(1., tempmap, weight);
+                    log(MyPID, format("M %d %d: %f") % j % k % time.ElapsedTime());
+                }
+            } // M loop
         } // chunck loop
     } // channel loop
 //end LOOP
@@ -180,7 +184,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
 //createHitmap(PixMap, *hitmap, invM);
 //WriteH5Vec(*hitmap, "hitmap");
 //delete hitmap;
-WriteH5Vec(summap(0), "summap");
+//WriteH5Vec(summap(0), "summap");
 
 //log(MyPID,"Computing RCOND and Inverting");
 //Epetra_Vector rcond(PixMap);

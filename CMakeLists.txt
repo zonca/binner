@@ -40,7 +40,7 @@ elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(testFEVbr PlanckDataManager read_fits_lib cfitsio trilinos_epetra trilinos_aztecoo trilinos_teuchos trilinos_epetraext hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
-set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Release)
 
 # TEST
 ENABLE_TESTING()
