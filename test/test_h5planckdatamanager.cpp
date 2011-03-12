@@ -75,19 +75,20 @@ BOOST_AUTO_TEST_CASE( test_getdata_outofbounds )
     BOOST_CHECK_CLOSE(data[3], 0, 1e-6);
 }
 
-//BOOST_AUTO_TEST_CASE( test_getpointing )
-//{
-//    pointing_t pointing[10];
-//    H5PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath);
-//    dm1.getPointing(4, 10, pointing);
-//    BOOST_CHECK_EQUAL(pointing[0].pix, 688111);
-//    BOOST_CHECK_EQUAL(pointing[9].pix, 709496);
-//    BOOST_CHECK_CLOSE(pointing[0].qw, 0.37720931, 1e-5);
-//    BOOST_CHECK_CLOSE(pointing[9].qw, 0.31748405, 1e-5);
-//    BOOST_CHECK_CLOSE(pointing[0].uw, 0.92612803, 1e-5);
-//    BOOST_CHECK_CLOSE(pointing[9].uw, 0.94826361, 1e-5);
-//}
-//
+BOOST_AUTO_TEST_CASE( test_getpointing )
+{
+    int pix[10];
+    double qw[10], uw[10];
+    H5PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath, Weights);
+    dm1.getPointing("LFI28M", 4, 10, pix, qw, uw);
+    BOOST_CHECK_EQUAL(pix[0], 688111);
+    BOOST_CHECK_EQUAL(pix[9], 709496);
+    BOOST_CHECK_CLOSE(qw[0], 0.37720931, 1e-5);
+    BOOST_CHECK_CLOSE(qw[9], 0.31748405, 1e-5);
+    BOOST_CHECK_CLOSE(uw[0], 0.92612803, 1e-5);
+    BOOST_CHECK_CLOSE(uw[9], 0.94826361, 1e-5);
+}
+
 //BOOST_AUTO_TEST_CASE( test_getdata_across )
 //{
 //    double data[10];
