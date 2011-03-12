@@ -46,6 +46,11 @@ int i_M;
 
 int SAMPLES_PER_PROC = 1.2 * 1e6;
 
+int DEBUG = true;
+if (DEBUG) {
+    SAMPLES_PER_PROC = 5;
+}
+
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
 
@@ -102,6 +107,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             time.ResetStartTime();
             dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pix_view, yqu_view[1], yqu_view[2]);
             log(MyPID, format("Read data timer %f") % time.ElapsedTime());
+            cout << pix << endl;
 
             log(MyPID,"READ DATA");
             time.ResetStartTime();

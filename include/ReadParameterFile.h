@@ -22,7 +22,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     Weights["LFI27"] = 3.6656E+05;
     Weights["LFI28"] = 3.4432E+05;
 
-    bool DEBUG = false;
+    bool DEBUG = true;
     int NSIDE;
     string dataPath, pointingPath;
 
@@ -35,8 +35,9 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     lastOD = 110;
 
     if (DEBUG) {
-        pointingPath = "/home/zonca/p/testdata/dx4_1024_nest_30_9293.h5";
+        pointingPath = "/home/zonca/p/testdata/dx4_1_nest_30_9293.h5";
         dataPath = "/home/zonca/p/testdata/lfi_ops_dx4.h5";
+        NSIDE = 1;
         firstOD = 92;
         lastOD = 92;
     } else {
@@ -51,9 +52,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     dm = new H5PlanckDataManager(firstOD, lastOD, channels, dataPath, pointingPath, Weights);
     if (DEBUG) {
-        dm->setDatasetLength(1000000);
+        dm->setLengthPerChannel(30);
     }
-    dm->setDatasetLength(240);
     dm->NSIDE = NSIDE;
     dm->NSTOKES = 3;
 }

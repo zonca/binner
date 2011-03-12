@@ -41,6 +41,9 @@ class H5PlanckDataManager
         void setDatasetLength(double length) {
             TotalLength = length;
         };
+        void setLengthPerChannel(double length) {
+            LengthPerChannel = length;
+        };
         int NSIDE;
         int NSTOKES;
         double getNPIX(void){
