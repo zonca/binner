@@ -30,20 +30,6 @@ using namespace std;
 using namespace H5;
 using boost::format;
 
-int WriteH5Vec(Epetra_Vector * vec, string filename) {
-    int MyPID = vec->Comm().MyPID();
-    H5std_string  FILE_NAME( str( format("%s_%03d.h5") % filename % MyPID ) );
-    H5File file(FILE_NAME, H5F_ACC_TRUNC );
-    hsize_t dimsf[1];
-    dimsf[0] = vec->Map().NumMyElements();
-    DataSpace dataspace( 1, dimsf );
-    DataSet dataset = file.createDataSet( "Vector", PredType::NATIVE_DOUBLE, dataspace );
-    double * data;
-    vec->ExtractView(&data);
-    dataset.write( data, PredType::NATIVE_DOUBLE );
-    return 0;
-}
-
 
 int main(int argc, char *argv[])
 {
