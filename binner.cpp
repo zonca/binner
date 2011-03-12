@@ -21,7 +21,6 @@
 #include "Epetra_FEVbrMatrix.h"
 
 #include "H5PlanckDataManager.h"
-#include "MapWriter.h"
 #include "CreateMatrices.h"
 #include "ReadParameterFile.h"
 
@@ -193,7 +192,7 @@ WriteH5Vec(hitmap, "hitmap");
 log(MyPID,"Computing RCOND and Inverting");
 Epetra_Vector rcond(PixMap);
 Epetra_Vector binmap(PixMap);
-invertM(PixMap, M, rcond, summap);
+invertM(PixMap, dm->NSTOKES, M, rcond, summap);
 
 log(MyPID,"Writing MAPS");
 
