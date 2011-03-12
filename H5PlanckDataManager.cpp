@@ -79,7 +79,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         DataSpace dataspace = dataset.getSpace();
         hsize_t  offset[1];       // hyperslab offset in memory
         hsize_t  count[1];        // size of the hyperslab in memory
-        offset[0] = iStart;
+        offset[0] = GlobalOffset + iStart;
         count[0]  = nElements;
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 
@@ -122,7 +122,7 @@ int H5PlanckDataManager::getData(string channel, long iStart, int nElements, dou
         DataSpace dataspace = dataset.getSpace();
         hsize_t  offset[1];       // hyperslab offset in memory
         hsize_t  count[1];        // size of the hyperslab in memory
-        offset[0] = iStart;
+        offset[0] = GlobalOffset + iStart;
         count[0]  = nElements;
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
 
