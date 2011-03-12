@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
 #endif  
 
 int MyPID = Comm.MyPID();
+int i_M;
 
 int SAMPLES_PER_PROC = 1.2 * 1e6;
 
@@ -83,7 +84,7 @@ log(MyPID,"POINTING MATRIX");
 Epetra_MultiVector summap(PixMap, dm->NSTOKES);
 Epetra_MultiVector M(PixMap, dm->NSTOKES * (dm->NSTOKES + 1) / 2);
 Epetra_Vector tempmap(PixMap);
-Epetra_Vector hitmap(PixMap);
+Epetra_Vector * hitmap = new Epetra_Vector(PixMap);
 Epetra_CrsMatrix * P;
 Epetra_CrsGraph * Graph; 
 
@@ -91,6 +92,8 @@ Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
 
 double ** yqu_view = new double *[3];
 yqu.ExtractView(&yqu_view);
+
+string LABEL[5] = {"I", "Q", "U", "S1", "S2"};
 
 Epetra_IntVector pix = Epetra_IntVector(Map);
 
@@ -144,7 +147,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             log(MyPID,"HitMap");
             tempvec.PutScalar(1.);
             P->Multiply1(true,tempvec,tempmap);
-            hitmap.Update(1., tempmap, weight);
+            hitmap->Update(1., tempmap, weight);
             log(MyPID, format("%f") % time.ElapsedTime());
             time.ResetStartTime();
 
@@ -158,6 +161,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             log(MyPID, format("%f") % time.ElapsedTime());
 
             log(MyPID, "Create M");
+            i_M = 0;
             for (int j=0; j<dm->NSTOKES; ++j) {
                 for (int k=j; k<dm->NSTOKES; ++k) {
                     log(MyPID,format("M %d %d") % j % k);
@@ -170,37 +174,32 @@ BOOST_FOREACH( string channel, dm->getChannels())
                         tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
                     }
                     P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-                    M(k + dm->NSTOKES*j)->Update(1., tempmap, weight);
+                    log(MyPID, format("Setting M %d") % i_M );
+                    M(i_M)->Update(1., tempmap, weight);
                     log(MyPID, format("M %d %d: %f") % j % k % time.ElapsedTime());
+                    i_M++;
                 }
             } // M loop
         } // chunck loop
     } // channel loop
 //end LOOP
 //
-//log(MyPID,"HITMAP");
-//Epetra_Vector * hitmap;
-//hitmap = new Epetra_Vector(PixMap);
-//createHitmap(PixMap, *hitmap, invM);
-//WriteH5Vec(*hitmap, "hitmap");
-//delete hitmap;
-//WriteH5Vec(summap(0), "summap");
+for (int j=0; j<dm->NSTOKES; ++j) {
+    WriteH5Vec(summap(j), "summap_" + LABEL[j]);
+}
 
-//log(MyPID,"Computing RCOND and Inverting");
-//Epetra_Vector rcond(PixMap);
-//invertM(PixBlockMap, invM, rcond);
-////
-////cout << time.ElapsedTime() << endl;
-////
-//log(MyPID,"BINMAP");
-//Epetra_Vector binmap(PixMap);
-//invM.Apply(*summap(0), binmap);
-//
-//log(MyPID,"Writing MAPS");
-//
-//WriteH5Vec(binmap, "binmap");
-//WriteH5Vec(rcond, "rcondmap");
-//cout << time.ElapsedTime() << endl;
+WriteH5Vec(hitmap, "hitmap");
+
+log(MyPID,"Computing RCOND and Inverting");
+Epetra_Vector rcond(PixMap);
+Epetra_Vector binmap(PixMap);
+invertM(PixMap, M, rcond, summap);
+
+log(MyPID,"Writing MAPS");
+
+for (int j=0; j<dm->NSTOKES; ++j) {
+    WriteH5Vec(summap(j), "binmap_" + LABEL[j]);
+}
 
 #ifdef HAVE_MPI
   MPI_Finalize();
