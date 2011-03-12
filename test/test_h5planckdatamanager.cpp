@@ -58,18 +58,22 @@ BOOST_AUTO_TEST_CASE( test_getdata )
     BOOST_CHECK_CLOSE(data[0], 0.001275042424, 1e-6);
     BOOST_CHECK_CLOSE(data[9], 0.001514075488, 1e-6);
 
-    dm1.getData("LFI28S", 2812782, 10, data);
-    BOOST_CHECK_CLOSE(data[9], -0.001445570012144, 1e-6);
+    H5PlanckDataManager dm2(93, 93, onech, dataPath, pointingPath, Weights);
+    dm2.getData("LFI28S", 0, 10, data);
+    BOOST_CHECK_CLOSE(data[8], 0.0015338654352308992, 1e-6);
 }
 
-//BOOST_AUTO_TEST_CASE( test_getdata_twoch )
-//{
-//    double* data;
-//    data = new double[10];
-//    H5PlanckDataManager dm1(92, 92, twoch, dataPath, pointingPath, Weights);
-//    dm1.getData(2812782, 10, data);
-//    BOOST_CHECK_CLOSE(data[0], -0.000420763029471, 1e-6);
-//}
+BOOST_AUTO_TEST_CASE( test_getdata_outofbounds )
+{
+    double* data;
+    data = new double[10];
+    H5PlanckDataManager dm1(92, 92, onech, dataPath, pointingPath, Weights);
+    dm1.getData("LFI28S", 2812780, 10, data);
+    BOOST_CHECK_CLOSE(data[0], -0.00091543088, 1e-6);
+    BOOST_CHECK_CLOSE(data[1], 5.8370141748324746e-05, 1e-6);
+    BOOST_CHECK_CLOSE(data[2], 0, 1e-6);
+    BOOST_CHECK_CLOSE(data[3], 0, 1e-6);
+}
 
 //BOOST_AUTO_TEST_CASE( test_getpointing )
 //{
