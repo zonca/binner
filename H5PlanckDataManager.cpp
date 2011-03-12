@@ -97,13 +97,13 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         pointing_h5type.insertMember( MEMBER1, 0, PredType::NATIVE_INT);
         dataset.read(pix, pointing_h5type, memspace, dataspace );
 
-        //CompType pointing_h5typeqw( sizeof(double) );
-        //pointing_h5typeqw.insertMember( MEMBER2, 0, PredType::NATIVE_DOUBLE);
-        //dataset.read(qw, pointing_h5typeqw, memspace, dataspace );
+        CompType pointing_h5typeqw( sizeof(double) );
+        pointing_h5typeqw.insertMember( MEMBER2, 0, PredType::NATIVE_DOUBLE);
+        dataset.read(qw, pointing_h5typeqw, memspace, dataspace );
 
-        //CompType pointing_h5typeuw( sizeof(double) );
-        //pointing_h5typeuw.insertMember( MEMBER3, 0, PredType::NATIVE_DOUBLE);
-        //dataset.read(uw, pointing_h5typeuw, memspace, dataspace );
+        CompType pointing_h5typeuw( sizeof(double) );
+        pointing_h5typeuw.insertMember( MEMBER3, 0, PredType::NATIVE_DOUBLE);
+        dataset.read(uw, pointing_h5typeuw, memspace, dataspace );
     }
     return 0;
 }

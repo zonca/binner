@@ -53,6 +53,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     if (DEBUG) {
         dm->setDatasetLength(1000000);
     }
+    dm->setDatasetLength(240);
     dm->NSIDE = NSIDE;
     dm->NSTOKES = 3;
 }

@@ -106,7 +106,7 @@ double weight = 0;
 //LOOP
 BOOST_FOREACH( string channel, dm->getChannels())
     {
-        log(MyPID, format("Processing channel %s") % channel);
+        log(MyPID, format("//////////////////Processing channel %s") % channel);
 
         weight = dm->getWeight(channel);
         log(MyPID, format("Weight %f") % weight);
@@ -130,6 +130,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             time.ResetStartTime();
             P = new Epetra_CrsMatrix(Copy, *Graph);
             P->PutScalar(1.);
+            P->FillComplete(PixMap, Map);
             log(MyPID, format("Create P timer %f") % time.ElapsedTime());
 
 
