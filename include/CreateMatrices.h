@@ -62,6 +62,7 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
     boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
     boost::scoped_ptr<Epetra_SerialSymDenseMatrix> blockM (new Epetra_SerialSymDenseMatrix());
     boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(NSTOKES, 1));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(NSTOKES, 1));
 
     double rcond_blockM;
     blockM->Shape(NSTOKES);
@@ -81,8 +82,10 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
         for (int j=0; j<NSTOKES; ++j) {
             for (int k=j; k<NSTOKES; ++k) {
                 (*blockM)(j, k) = M[i_M][i];
+                i_M++;
             }
         }
+
 
         SSolver->SetMatrix(*blockM);
         //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
@@ -99,6 +102,7 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
                     cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
                     rcond_blockM = -3;
                 }
+
             }
         } else {
             rcond_blockM = -1;
@@ -119,11 +123,11 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
             (*PixelArray)(j, 0) = summap[j][i];
         }
         
-        blockM->Apply(*PixelArray, *PixelArray);
+        blockM->Apply(*PixelArray, *WeightedPixelArray);
 
         //apply to summap
         for (int j=0; j<NSTOKES; ++j) {
-            summap[j][i] = (*PixelArray)(j, 0);
+            summap[j][i] = (*WeightedPixelArray)(j, 0);
         }
         
     }
