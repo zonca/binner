@@ -129,9 +129,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             ////// I
             log(MyPID,"I");
             P->Multiply1(true,*(yqu(0)),tempmap); //SUMMAP = Pt y
-            cout << tempmap << endl;
             summap(0)->Update(weight, tempmap, 1.);
-            cout << *(summap(0)) << endl;
             log(MyPID, format("%f") % time.ElapsedTime());
 
             time.ResetStartTime();
