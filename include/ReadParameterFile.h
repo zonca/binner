@@ -32,7 +32,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     NSIDE = 1024;
     firstOD = 91;
-    lastOD = 110;
+    lastOD = 563;
 
     if (DEBUG) {
         pointingPath = "/home/zonca/p/testdata/dx4_1_nest_30_9293.h5";
@@ -56,6 +56,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     }
     dm->NSIDE = NSIDE;
     dm->NSTOKES = 3;
+    dm->DEBUG = DEBUG;
 }
 
 #endif

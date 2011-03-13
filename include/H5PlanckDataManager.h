@@ -45,6 +45,7 @@ class H5PlanckDataManager
             LengthPerChannel = length;
         };
         int NSIDE;
+        bool DEBUG;
         int NSTOKES;
         double getNPIX(void){
             return 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU

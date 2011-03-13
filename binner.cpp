@@ -45,16 +45,15 @@ int i_M;
 
 int SAMPLES_PER_PROC = 1.2 * 1e6;
 
-int DEBUG = true;
-if (DEBUG) {
-    SAMPLES_PER_PROC = 5;
-}
-
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
 
 string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);
+
+if (dm->DEBUG) {
+    SAMPLES_PER_PROC = 5;
+}
 
 log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getDatasetLength()/1.e6));
 log(MyPID, format("Elements per channel [mil]: %.10d") % (dm->getLengthPerChannel()/1.e6));
@@ -181,10 +180,13 @@ WriteH5Vec(hitmap, "hitmap");
 
 log(MyPID,"Computing RCOND and Inverting");
 Epetra_Vector rcond(PixMap);
+
 Epetra_Vector binmap(PixMap);
 invertM(PixMap, dm->NSTOKES, M, rcond, summap);
 
 log(MyPID,"Writing MAPS");
+
+WriteH5Vec(&rcond, "rcondmap");
 
 for (int j=0; j<dm->NSTOKES; ++j) {
     WriteH5Vec(summap(j), "binmap_" + LABEL[j]);
