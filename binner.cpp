@@ -30,7 +30,6 @@ using namespace std;
 using namespace H5;
 using boost::format;
 
-
 int main(int argc, char *argv[])
 {
 
@@ -107,7 +106,6 @@ BOOST_FOREACH( string channel, dm->getChannels())
             time.ResetStartTime();
             dm->getPointing(channel, Map.MinMyGID() + offset, NumMyElements, pix_view, yqu_view[1], yqu_view[2]);
             log(MyPID, format("Read data timer %f") % time.ElapsedTime());
-            cout << pix << endl;
 
             log(MyPID,"READ DATA");
             time.ResetStartTime();
@@ -125,21 +123,22 @@ BOOST_FOREACH( string channel, dm->getChannels())
             P->FillComplete(PixMap, Map);
             log(MyPID, format("Create P timer %f") % time.ElapsedTime());
 
-
             log(MyPID,"SUM MAP");
 
             time.ResetStartTime();
             ////// I
             log(MyPID,"I");
             P->Multiply1(true,*(yqu(0)),tempmap); //SUMMAP = Pt y
-            summap(0)->Update(1., tempmap, weight);
+            cout << tempmap << endl;
+            summap(0)->Update(weight, tempmap, 1.);
+            cout << *(summap(0)) << endl;
             log(MyPID, format("%f") % time.ElapsedTime());
 
             time.ResetStartTime();
             log(MyPID,"HitMap");
             tempvec.PutScalar(1.);
             P->Multiply1(true,tempvec,tempmap);
-            hitmap->Update(1., tempmap, weight);
+            hitmap->Update(1., tempmap, 1.);
             log(MyPID, format("%f") % time.ElapsedTime());
             time.ResetStartTime();
 
@@ -148,7 +147,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
             for (int i=1; i<3; ++i) { // Q=1 U=2
                 tempvec.Multiply(1., *(yqu(0)), *(yqu(i)), 0.);
                 P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-                summap(i)->Update(1., tempmap, weight);
+                summap(i)->Update(weight, tempmap, 1.);
             }
             log(MyPID, format("%f") % time.ElapsedTime());
 
@@ -167,7 +166,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
                     }
                     P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
                     log(MyPID, format("Setting M %d") % i_M );
-                    M(i_M)->Update(1., tempmap, weight);
+                    M(i_M)->Update(weight, tempmap, 1.);
                     log(MyPID, format("M %d %d: %f") % j % k % time.ElapsedTime());
                     i_M++;
                 }

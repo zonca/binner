@@ -22,7 +22,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     Weights["LFI27"] = 3.6656E+05;
     Weights["LFI28"] = 3.4432E+05;
 
-    bool DEBUG = true;
+    bool DEBUG = false;
     int NSIDE;
     string dataPath, pointingPath;
 
@@ -38,8 +38,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         pointingPath = "/home/zonca/p/testdata/dx4_1_nest_30_9293.h5";
         dataPath = "/home/zonca/p/testdata/lfi_ops_dx4.h5";
         NSIDE = 1;
-        firstOD = 92;
-        lastOD = 92;
+        firstOD = 93;
+        lastOD = 93;
     } else {
         pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_nest_30.h5") % NSIDE );
     }
