@@ -168,6 +168,8 @@ BOOST_FOREACH( string channel, dm->getChannels())
                     i_M++;
                 }
             } // M loop
+            delete P;
+            delete Graph;
         } // chunck loop
     } // channel loop
 //end LOOP
