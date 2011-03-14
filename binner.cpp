@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
 int MyPID = Comm.MyPID();
 int i_M;
 
-int SAMPLES_PER_PROC = 4. * 1e6;
+int SAMPLES_PER_PROC = 6.9 * 1e6;
+//int SAMPLES_PER_PROC = .5 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -81,7 +82,7 @@ Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
 double ** yqu_view = new double *[3];
 yqu.ExtractView(&yqu_view);
 
-string LABEL[5] = {"I", "Q", "U", "S1", "S2"};
+string LABEL[6] = {"I", "Q", "U", "S1", "S2", "S3"};
 
 Epetra_IntVector pix = Epetra_IntVector(Map);
 
@@ -173,7 +174,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
         } // chunck loop
     } // channel loop
 //end LOOP
-//
+
 for (int j=0; j<dm->NSTOKES; ++j) {
     WriteH5Vec(summap(j), "summap_" + LABEL[j]);
 }
