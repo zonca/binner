@@ -79,13 +79,12 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
 
         //build blockM
         i_M = 0;
-        for (int j=0; j<NSTOKES; ++j) {
-            for (int k=j; k<NSTOKES; ++k) {
+        for (int j=0; j<3; ++j) {
+            for (int k=j; k<3; ++k) {
                 (*blockM)(j, k) = M[i_M][i];
                 i_M++;
             }
         }
-
 
         SSolver->SetMatrix(*blockM);
         //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
@@ -96,7 +95,7 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
                 cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot compute RCOND, error code:" << err << " estimated:"<< rcond_blockM << endl;
                 rcond_blockM = -2;
             }
-            if (rcond_blockM > 1e-5) {
+            if (rcond_blockM > 1e-7) {
                 err = SSolver->Invert();
                 if (err != 0) {
                     cout << "PID:" << PixMap.Comm().MyPID() << " LocalRow[i]:" << i << " cannot invert matrix, error code:" << err << endl;
@@ -107,12 +106,8 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
         } else {
             rcond_blockM = -1;
         }
-        if (rcond_blockM < 1e-5) {
-                for (int r=0; r<blockM->M(); ++r) {
-                    for (int c=0; c<blockM->N(); ++c) {
-                        (*blockM)(r,c) = 0.;
-                    }
-                }
+        if (rcond_blockM < 1e-7) {
+            blockM->Scale(0.);
         }
         RCondValues[0] = rcond_blockM;
         RCondIndices[0] = PixMyGlobalElements[i];

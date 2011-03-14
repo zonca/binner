@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 #endif  
 
 int MyPID = Comm.MyPID();
-int i_M;
+int i_M, a, s_index;
 
 int SAMPLES_PER_PROC = 6.9 * 1e6;
 //int SAMPLES_PER_PROC = .5 * 1e6;
@@ -92,6 +92,7 @@ pix.ExtractView(&pix_view);
 Epetra_Vector tempvec = Epetra_Vector(Map);
 
 double weight = 0;
+int ch_number = 0;
 
 //LOOP
 BOOST_FOREACH( string channel, dm->getChannels())
@@ -140,6 +141,16 @@ BOOST_FOREACH( string channel, dm->getChannels())
             log(MyPID, format("%f") % time.ElapsedTime());
             time.ResetStartTime();
 
+            //S1/S2
+            // tempmap is the hitmap
+            if (dm->NSTOKES > 3) {
+                s_index = 3 + ch_number/2
+                log(MyPID, format("S index: %f") % s_index);
+                a = 2 * (ch_number % 2) - 1; // -1 for M, +1 for S
+                log(MyPID, format("a : %f") % a);
+                summap(s_index).Update(a, tempmap, 1.);
+            }
+
             //// Q U
             log(MyPID,"QU");
             for (int i=1; i<3; ++i) { // Q=1 U=2
@@ -150,11 +161,11 @@ BOOST_FOREACH( string channel, dm->getChannels())
             log(MyPID, format("%f") % time.ElapsedTime());
 
             log(MyPID, "Create M");
-            i_M = 0;
-            for (int j=0; j<dm->NSTOKES; ++j) {
-                for (int k=j; k<dm->NSTOKES; ++k) {
+            log(MyPID, "IQU loop");
+            time.ResetStartTime();
+            for (int j=0; j<3; ++j) {
+                for (int k=j; k<3; ++k) {
                     log(MyPID,format("M %d %d") % j % k);
-                    time.ResetStartTime();
                     if (k == 0) { //also j=0
                         tempvec.PutScalar(1.);
                     } else if (j == 0 ) {
@@ -163,15 +174,36 @@ BOOST_FOREACH( string channel, dm->getChannels())
                         tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
                     }
                     P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+                    i_M = j * (2*dm->NSTOKES-1 - j)/2 + k;
                     log(MyPID, format("Setting M %d") % i_M );
                     M(i_M)->Update(weight, tempmap, 1.);
-                    log(MyPID, format("M %d %d: %f") % j % k % time.ElapsedTime());
-                    i_M++;
                 }
-            } // M loop
+            } // M loop IQU
+            log(MyPID, format("IQU loop: %f") % time.ElapsedTime());
+
+            log(MyPID, "S loop");
+            if (dm->NSTOKES > 3) {
+                for (int j=0; j<dm->NSTOKES; ++j) {
+                        if (j == 0) {
+                            tempvec.PutScalar(a); // a1 or a2
+                        } else if (j >= 3) {
+                            tempvec.PutScalar(1); // a1**2 or a2**2
+                        } else {
+                            tempvec.Update(a, *(yqu(s_index)), 0.); // a1 * q, a2 * q, a1*u,a2*q
+                        }
+                        P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+                        i_M = j * (2*dm->NSTOKES-1 - j)/2 + s_index;
+                        log(MyPID, format("Setting M %d") % i_M );
+                        M(i_M)->Update(1., tempmap, 1.);
+                    }
+                }
+            }
+            log(MyPID, format("S loop: %f") % time.ElapsedTime());
+
             delete P;
             delete Graph;
         } // chunck loop
+    ch_number++;
     } // channel loop
 //end LOOP
 
