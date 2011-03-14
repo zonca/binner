@@ -144,11 +144,11 @@ BOOST_FOREACH( string channel, dm->getChannels())
             //S1/S2
             // tempmap is the hitmap
             if (dm->NSTOKES > 3) {
-                s_index = 3 + ch_number/2
+                s_index = 3 + ch_number/2;
                 log(MyPID, format("S index: %f") % s_index);
                 a = 2 * (ch_number % 2) - 1; // -1 for M, +1 for S
                 log(MyPID, format("a : %f") % a);
-                summap(s_index).Update(a, tempmap, 1.);
+                summap(s_index)->Update(a, tempmap, 1.);
             }
 
             //// Q U
@@ -196,8 +196,8 @@ BOOST_FOREACH( string channel, dm->getChannels())
                         log(MyPID, format("Setting M %d") % i_M );
                         M(i_M)->Update(1., tempmap, 1.);
                     }
-                }
             }
+            
             log(MyPID, format("S loop: %f") % time.ElapsedTime());
 
             delete P;
