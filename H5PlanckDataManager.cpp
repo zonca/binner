@@ -52,7 +52,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
     dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
     dataset.read( odstart, PredType::NATIVE_INT, memspace, dataspace );
 
-    LengthPerChannel = odstart[0];
+    LengthPerChannel = odstart[0] - GlobalOffset;
     //LengthPerChannel = 3000000 * 6 / 4.;
     TotalLength = LengthPerChannel * Channels.size(); //computed from last OD - first OD
 
