@@ -12,6 +12,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     WeightDict Weights;
     Weights["LFI18"] = 5.2814E+04;
     Weights["LFI19"] = 3.9294E+04;
+        dm->setLengthPerChannel(30);
     Weights["LFI23"] = 4.6195E+04;
     Weights["LFI22"] = 4.8167E+04;
     Weights["LFI20"] = 3.4468E+04;
@@ -32,7 +33,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
 
     NSIDE = 1024;
     firstOD = 91;
-    lastOD = 274;
+    lastOD = 563;
 
     if (DEBUG) {
         pointingPath = "/home/zonca/p/testdata/dx4_1_nest_30_9293.h5";
@@ -55,9 +56,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         dm->setLengthPerChannel(30);
     }
     dm->NSIDE = NSIDE;
-    dm->NSTOKES = 3;
+    dm->NSTOKES = 5;
     dm->DEBUG = DEBUG;
 }
 
 #endif
-

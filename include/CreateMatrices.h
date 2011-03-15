@@ -58,6 +58,7 @@ int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_In
 
 void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetra_Vector& rcond, Epetra_MultiVector& summap) {
 
+    int MyPID = PixMap.Comm().MyPID();
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
     boost::scoped_ptr<Epetra_SerialSymDenseMatrix> blockM (new Epetra_SerialSymDenseMatrix());
@@ -78,17 +79,18 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
     for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
 
         //build blockM
-        i_M = 0;
-        for (int j=0; j<3; ++j) {
-            for (int k=j; k<3; ++k) {
+        for (int j=0; j<NSTOKES; ++j) {
+            for (int k=j; k<NSTOKES; ++k) {
+                i_M = j * (2*NSTOKES-1 - j)/2 + k;
                 (*blockM)(j, k) = M[i_M][i];
-                i_M++;
             }
         }
 
+
         SSolver->SetMatrix(*blockM);
-        //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
         if ((*blockM)(0,0) > 0) {
+            //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
+            //cout << *blockM << endl;
             //rcond_blockM = PixMyGlobalElements[i];
             err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
             if (err != 0) {
