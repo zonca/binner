@@ -43,8 +43,8 @@ int main(int argc, char *argv[])
 int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
-//int SAMPLES_PER_PROC = 6.9 * 1e6 / 2;
-int SAMPLES_PER_PROC = .5 * 1e6;
+int SAMPLES_PER_PROC = 6.9 * 1e6 / 2;
+//int SAMPLES_PER_PROC = .5 * 1e6;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -189,10 +189,12 @@ BOOST_FOREACH( string channel, dm->getChannels())
                         log(MyPID, format("Setting M %d") % i_M );
                         if (j == 0) {
                             tempvec.PutScalar(a); // a1 or a2
-                        } else if (j >= 3) {
+                        } else if (j < 3) {
+                            tempvec.Update(a, *(yqu(j)), 0.); // a1 * q, a2 * q, a1*u,a2*q
+                        } else if (j == s_index) {
                             tempvec.PutScalar(1); // a1**2 or a2**2
                         } else {
-                            tempvec.Update(a, *(yqu(j)), 0.); // a1 * q, a2 * q, a1*u,a2*q
+                            continue; //a1*a2
                         }
                         P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
                         M(i_M)->Update(weight, tempmap, 1.);

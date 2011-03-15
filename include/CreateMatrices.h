@@ -89,8 +89,7 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
 
         SSolver->SetMatrix(*blockM);
         if ((*blockM)(0,0) > 0) {
-            //cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << endl;
-            //cout << *blockM << endl;
+            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
             //rcond_blockM = PixMyGlobalElements[i];
             err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
             if (err != 0) {
