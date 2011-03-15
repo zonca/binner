@@ -89,7 +89,9 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
 
         SSolver->SetMatrix(*blockM);
         if ((*blockM)(0,0) > 0) {
-            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
+            if ((PixMyGlobalElements[i] % 100000) == 0) {
+                cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
+            }
             //rcond_blockM = PixMyGlobalElements[i];
             err = SSolver->ReciprocalConditionEstimate(rcond_blockM);
             if (err != 0) {

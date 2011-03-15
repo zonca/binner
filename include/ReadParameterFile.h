@@ -12,7 +12,6 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     WeightDict Weights;
     Weights["LFI18"] = 5.2814E+04;
     Weights["LFI19"] = 3.9294E+04;
-        dm->setLengthPerChannel(30);
     Weights["LFI23"] = 4.6195E+04;
     Weights["LFI22"] = 4.8167E+04;
     Weights["LFI20"] = 3.4468E+04;
@@ -42,7 +41,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         firstOD = 93;
         lastOD = 93;
     } else {
-        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_nest_30.h5") % NSIDE );
+        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_30.h5") % NSIDE );
     }
     vector<string> channels;
     channels.push_back("LFI27M");

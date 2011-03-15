@@ -185,7 +185,7 @@ BOOST_FOREACH( string channel, dm->getChannels())
                 log(MyPID, "S loop");
                 time.ResetStartTime();
                 for (int j=0; j<dm->NSTOKES; ++j) {
-                        i_M = j * (2*dm->NSTOKES-1 - j)/2 + s_index;
+                        i_M = dm->getIndexM(j, s_index);
                         log(MyPID, format("Setting M %d") % i_M );
                         if (j == 0) {
                             tempvec.PutScalar(a); // a1 or a2
