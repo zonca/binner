@@ -56,17 +56,17 @@ int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_In
     return 0;
 }
 
-void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetra_Vector& rcond, Epetra_MultiVector& summap) {
+void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVector& M, Epetra_Vector& rcond, Epetra_MultiVector& summap) {
 
     int MyPID = PixMap.Comm().MyPID();
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
     boost::scoped_ptr<Epetra_SerialSymDenseMatrix> blockM (new Epetra_SerialSymDenseMatrix());
-    boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(NSTOKES, 1));
-    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(NSTOKES, 1));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
 
     double rcond_blockM;
-    blockM->Shape(NSTOKES);
+    blockM->Shape(dm->NSTOKES);
     blockM->SetUpper();
 
     int RCondIndices[1], err, i_M;
@@ -79,9 +79,9 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
     for( int i=0 ; i<PixMap.NumMyElements(); ++i ) { //loop on local pointing
 
         //build blockM
-        for (int j=0; j<NSTOKES; ++j) {
-            for (int k=j; k<NSTOKES; ++k) {
-                i_M = j * (2*NSTOKES-1 - j)/2 + k;
+        for (int j=0; j<dm->NSTOKES; ++j) {
+            for (int k=j; k<dm->NSTOKES; ++k) {
+                i_M = dm->getIndexM(j, k);
                 (*blockM)(j, k) = M[i_M][i];
             }
         }
@@ -115,14 +115,14 @@ void invertM(const Epetra_Map& PixMap, int NSTOKES, Epetra_MultiVector& M, Epetr
         rcond.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
 
         //apply to summap
-        for (int j=0; j<NSTOKES; ++j) {
+        for (int j=0; j<dm->NSTOKES; ++j) {
             (*PixelArray)(j, 0) = summap[j][i];
         }
         
         blockM->Apply(*PixelArray, *WeightedPixelArray);
 
         //apply to summap
-        for (int j=0; j<NSTOKES; ++j) {
+        for (int j=0; j<dm->NSTOKES; ++j) {
             summap[j][i] = (*WeightedPixelArray)(j, 0);
         }
         

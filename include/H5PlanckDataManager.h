@@ -51,6 +51,10 @@ class H5PlanckDataManager
             return 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
         }
 
+        int getIndexM(int row, int col) {
+                return row * (2*NSTOKES-1 - row)/2 + col;
+        }
+
 };
 
 #endif

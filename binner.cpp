@@ -220,7 +220,7 @@ log(MyPID,"Computing RCOND and Inverting");
 Epetra_Vector rcond(PixMap);
 
 Epetra_Vector binmap(PixMap);
-invertM(PixMap, dm->NSTOKES, M, rcond, summap);
+invertM(PixMap, dm, M, rcond, summap);
 
 log(MyPID,"Writing MAPS");
 
@@ -228,6 +228,15 @@ WriteH5Vec(&rcond, "rcondmap");
 
 for (int j=0; j<dm->NSTOKES; ++j) {
     WriteH5Vec(summap(j), "binmap_" + LABEL[j]);
+}
+
+log(MyPID,"Writing M");
+
+for (int j=0; j<dm->NSTOKES; ++j) {
+    for (int k=j; k<dm->NSTOKES; ++k) {
+        i_M = dm->getIndexM(j, k);
+        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k]);
+    }
 }
 
 #ifdef HAVE_MPI
