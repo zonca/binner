@@ -181,8 +181,9 @@ BOOST_FOREACH( string channel, dm->getChannels())
             } // M loop IQU
             log(MyPID, format("IQU loop: %f") % time.ElapsedTime());
 
-            log(MyPID, "S loop");
             if (dm->NSTOKES > 3) {
+                log(MyPID, "S loop");
+                time.ResetStartTime();
                 for (int j=0; j<dm->NSTOKES; ++j) {
                         if (j == 0) {
                             tempvec.PutScalar(a); // a1 or a2
@@ -196,9 +197,9 @@ BOOST_FOREACH( string channel, dm->getChannels())
                         log(MyPID, format("Setting M %d") % i_M );
                         M(i_M)->Update(1., tempmap, 1.);
                     }
+                log(MyPID, format("S loop: %f") % time.ElapsedTime());
             }
             
-            log(MyPID, format("S loop: %f") % time.ElapsedTime());
 
             delete P;
             delete Graph;
