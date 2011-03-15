@@ -12,7 +12,7 @@ STOKES = ['I','Q','U','S1','S2']
 
 for map in ['binmap', 'summap']:
     for S in STOKES:
-        types.append('_'.join([map, S])
+        types.append('_'.join([map, S]))
 
 for comb in itertools.combinations(STOKES, 2):
     types.append('_'.join(['M',comb[0],comb[1]]))
