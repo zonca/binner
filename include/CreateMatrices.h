@@ -19,7 +19,6 @@
 #include "Epetra_BlockMap.h"
 #include "Epetra_Vector.h"
 #include "Epetra_SerialDenseMatrix.h"
-#include "Epetra_SerialSymDenseMatrix.h"
 #include <Epetra_SerialDenseSolver.h>
 #include "Epetra_Time.h"
 
@@ -61,13 +60,11 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
     int MyPID = PixMap.Comm().MyPID();
     int * PixMyGlobalElements = PixMap.MyGlobalElements();
     boost::scoped_ptr<Epetra_SerialDenseSolver> SSolver (new Epetra_SerialDenseSolver());
-    boost::scoped_ptr<Epetra_SerialSymDenseMatrix> blockM (new Epetra_SerialSymDenseMatrix());
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> blockM (new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES));
     boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
     boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
 
     double rcond_blockM;
-    blockM->Shape(dm->NSTOKES);
-    blockM->SetUpper();
 
     int RCondIndices[1], err, i_M;
     double RCondValues[1];
@@ -83,13 +80,14 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
             for (int k=j; k<dm->NSTOKES; ++k) {
                 i_M = dm->getIndexM(j, k);
                 (*blockM)(j, k) = M[i_M][i];
+                (*blockM)(k, j) = M[i_M][i];
             }
         }
 
 
         SSolver->SetMatrix(*blockM);
         if ((*blockM)(0,0) > 0) {
-            if ((PixMyGlobalElements[i] % 100000) == 0) {
+            if ((PixMyGlobalElements[i] % 1000000) == 0) {
                 cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
             }
             //rcond_blockM = PixMyGlobalElements[i];
@@ -122,8 +120,12 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
         }
         
         blockM->Apply(*PixelArray, *WeightedPixelArray);
+        if ((PixMyGlobalElements[i] % 1000000) == 0) {
+            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *PixelArray << endl;
+            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
+            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *WeightedPixelArray << endl;
+        }
 
-        //apply to summap
         for (int j=0; j<dm->NSTOKES; ++j) {
             summap[j][i] = (*WeightedPixelArray)(j, 0);
         }
