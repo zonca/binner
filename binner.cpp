@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
 int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
-int SAMPLES_PER_PROC = 6.9 * 1e6 / 2;
+//int SAMPLES_PER_PROC = 6.9 * 1e6;
+int SAMPLES_PER_PROC = 4.95 * 1e6;
 //int SAMPLES_PER_PROC = .5 * 1e6;
 
 Epetra_Time time(Comm);

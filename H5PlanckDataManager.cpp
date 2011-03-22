@@ -21,7 +21,7 @@ using namespace H5;
 H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string> Channels, string DataPath, string PointingPath, WeightDict Weights) : Channels(Channels),
     DataPath(DataPath), PointingPath(PointingPath), Weights(Weights)
 {
-    H5File file( PointingPath, H5F_ACC_RDONLY );
+    H5File file( PointingPath+".h5", H5F_ACC_RDONLY );
 
     DataSet dataset = file.openDataSet( "OD" );
 
@@ -59,7 +59,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 };
 
 int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements, int * pix, double * qw, double * uw){
-     H5File file( PointingPath, H5F_ACC_RDONLY );
+     H5File file( PointingPath+"_"+channel+".h5", H5F_ACC_RDONLY );
 
     int NPIX = getNPIX();
     if (iStart >= LengthPerChannel) {
@@ -109,7 +109,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
 }
 
 int H5PlanckDataManager::getData(string channel, long iStart, int nElements, double* data){
-    H5File file( DataPath, H5F_ACC_RDONLY );
+    H5File file( DataPath+"_"+channel+".h5", H5F_ACC_RDONLY );
 
     if (iStart < LengthPerChannel) {
         if (iStart + nElements >= LengthPerChannel) {

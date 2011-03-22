@@ -8,7 +8,7 @@ import itertools
 
 types = ['hitmap', 'rcondmap']
 
-STOKES = ['I','Q','U','S1','S2']
+STOKES = ['I','Q','U','S1','S2','S3']
 
 for map in ['binmap', 'summap']:
     for S in STOKES:

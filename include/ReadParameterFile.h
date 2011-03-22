@@ -22,13 +22,18 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     Weights["LFI27"] = 3.6656E+05;
     Weights["LFI28"] = 3.4432E+05;
 
+    //TORSTI
+    //Weights["LFI27"] = 363767.99;
+    //Weights["LFI28"] = 342751.11;
+
     bool DEBUG = false;
     int NSIDE;
     string dataPath, pointingPath;
 
     int firstOD, lastOD;
+    int freq = 44;
 
-    dataPath = "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_30.h5";
+    dataPath = str( format("/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d.h5") % freq );
 
     NSIDE = 1024;
     firstOD = 91;
@@ -41,13 +46,15 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         firstOD = 93;
         lastOD = 93;
     } else {
-        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_30.h5") % NSIDE );
+        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d.h5") % NSIDE % freq );
     }
     vector<string> channels;
-    channels.push_back("LFI27M");
-    channels.push_back("LFI27S");
-    channels.push_back("LFI28M");
-    channels.push_back("LFI28S");
+    //channels.push_back("LFI24M");
+    //channels.push_back("LFI24S");
+    channels.push_back("LFI25M");
+    channels.push_back("LFI25S");
+    channels.push_back("LFI26M");
+    channels.push_back("LFI26S");
 
 
     dm = new H5PlanckDataManager(firstOD, lastOD, channels, dataPath, pointingPath, Weights);
