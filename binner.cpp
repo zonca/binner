@@ -43,9 +43,9 @@ int main(int argc, char *argv[])
 int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
-//int SAMPLES_PER_PROC = 6.9 * 1e6;
-int SAMPLES_PER_PROC = 4.95 * 1e6;
-//int SAMPLES_PER_PROC = .5 * 1e6;
+int SAMPLES_PER_PROC;
+int MAX_SAMPLES_PER_PROC = 7e6;
+int LOOPS = 1;
 
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
@@ -59,6 +59,13 @@ if (dm->DEBUG) {
 
 log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getDatasetLength()/1.e6));
 log(MyPID, format("Elements per channel [mil]: %.10d") % (dm->getLengthPerChannel()/1.e6));
+do  {
+    SAMPLES_PER_PROC = dm->getLengthPerChannel()/Comm.NumProc()/LOOPS;
+    log(MyPID, format("%d loops: Samples per proc [mil]: %.10d") % LOOPS % (SAMPLES_PER_PROC/1.e6));
+    LOOPS++;
+} while (SAMPLES_PER_PROC > MAX_SAMPLES_PER_PROC);
+
+
 log(MyPID, format("Samples per proc [mil]: %.10d") % (SAMPLES_PER_PROC/1.e6));
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
 Epetra_Map Map(-1, SAMPLES_PER_PROC, 0, Comm);
