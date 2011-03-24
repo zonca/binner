@@ -18,7 +18,6 @@
 #include "Epetra_IntVector.h"
 #include "Epetra_DataAccess.h"
 #include "Epetra_Time.h"
-#include "Epetra_FEVbrMatrix.h"
 
 #include "H5PlanckDataManager.h"
 #include "CreateMatrices.h"
@@ -44,7 +43,7 @@ int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
 int SAMPLES_PER_PROC;
-int MAX_SAMPLES_PER_PROC = 7e6;
+int MAX_SAMPLES_PER_PROC = 4e6;
 int LOOPS = 1;
 
 Epetra_Time time(Comm);
@@ -64,9 +63,6 @@ do  {
     log(MyPID, format("%d loops: Samples per proc [mil]: %.10d") % LOOPS % (SAMPLES_PER_PROC/1.e6));
     LOOPS++;
 } while (SAMPLES_PER_PROC > MAX_SAMPLES_PER_PROC);
-
-SAMPLES_PER_PROC = dm->getLengthPerChannel()/Comm.NumProc()/LOOPS+2;
-log(MyPID, format("%d loops: Samples per proc [mil]: %.10d") % LOOPS % (SAMPLES_PER_PROC/1.e6));
 
 log(MyPID, format("Samples per proc [mil]: %.10d") % (SAMPLES_PER_PROC/1.e6));
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
@@ -92,7 +88,7 @@ Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
 double ** yqu_view = new double *[3];
 yqu.ExtractView(&yqu_view);
 
-string LABEL[6] = {"I", "Q", "U", "S1", "S2", "S3"};
+string LABEL[9] = {"I", "Q", "U", "S1", "S2", "S3", "S4", "S5", "S6"};
 
 Epetra_IntVector pix = Epetra_IntVector(Map);
 
@@ -220,34 +216,43 @@ BOOST_FOREACH( string channel, dm->getChannels())
     } // channel loop
 //end LOOP
 
+log(MyPID,"Writing SUMMAP");
+
+time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
     WriteH5Vec(summap(j), "summap_" + LABEL[j]);
 }
+log(MyPID, format("%f") % time.ElapsedTime());
 
 WriteH5Vec(hitmap, "hitmap");
 
 log(MyPID,"Computing RCOND and Inverting");
+time.ResetStartTime();
 Epetra_Vector rcond(PixMap);
 
 Epetra_Vector binmap(PixMap);
 invertM(PixMap, dm, M, rcond, summap);
+log(MyPID, format("%f") % time.ElapsedTime());
 
-log(MyPID,"Writing MAPS");
 
 WriteH5Vec(&rcond, "rcondmap");
 
+log(MyPID,"Writing BINMAP");
+time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
     WriteH5Vec(summap(j), "binmap_" + LABEL[j]);
 }
+log(MyPID, format("%f") % time.ElapsedTime());
 
 log(MyPID,"Writing M");
-
+time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
     for (int k=j; k<dm->NSTOKES; ++k) {
         i_M = dm->getIndexM(j, k);
         WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k]);
     }
 }
+log(MyPID, format("%f") % time.ElapsedTime());
 
 #ifdef HAVE_MPI
   MPI_Finalize();

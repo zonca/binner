@@ -12,8 +12,6 @@
 #include "H5Cpp.h"
 
 #include "H5PlanckDataManager.h"
-#include "PointingStruct.h"
-
 
 using boost::format;
 using namespace std;
@@ -60,7 +58,7 @@ H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string>
 };
 
 int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements, int * pix, double * qw, double * uw){
-     H5File file( PointingPath+"_"+channel+".h5", H5F_ACC_RDONLY );
+
 
     int NPIX = getNPIX();
     if (iStart >= LengthPerChannel) {
@@ -73,6 +71,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
             cout << "istart " << iStart << " new nElem " << nElements << endl;
         }
 
+        H5File file( PointingPath+"_pix_"+channel+".h5", H5F_ACC_RDONLY );
         DataSet dataset = file.openDataSet( "pix" );
 
         //DATASPACE
@@ -95,6 +94,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
 
         dataset.read(pix, PredType::NATIVE_INT, memspace, dataspace );
 
+        file = H5File( PointingPath+"_qw_"+channel+".h5", H5F_ACC_RDONLY );
         dataset = file.openDataSet( "qw" );
         //DATASPACE
         dataspace = dataset.getSpace();
@@ -103,6 +103,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
         dataset.read(qw, PredType::NATIVE_DOUBLE, memspace, dataspace );
 
+        file = H5File( PointingPath+"_uw_"+channel+".h5", H5F_ACC_RDONLY );
         dataset = file.openDataSet( "uw" );
         //DATASPACE
         dataspace = dataset.getSpace();
