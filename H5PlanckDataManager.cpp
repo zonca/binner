@@ -12,6 +12,7 @@
 #include "H5Cpp.h"
 
 #include "H5PlanckDataManager.h"
+#include "PointingStruct.h"
 
 
 using boost::format;
@@ -93,6 +94,27 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         DataSpace memspace( 1, dimsm );
         memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
 
+        bool READ_COMPOUND = true;
+
+        if (READ_COMPOUND) {
+
+            pointing_t pointing[nElements];
+            CompType pointing_h5type( sizeof(pointing_t) );
+            pointing_h5type.insertMember( MEMBER1, HOFFSET(pointing_t, pix), PredType::NATIVE_INT);
+            pointing_h5type.insertMember( MEMBER2, HOFFSET(pointing_t, qw), PredType::NATIVE_DOUBLE);
+            pointing_h5type.insertMember( MEMBER3, HOFFSET(pointing_t, uw), PredType::NATIVE_DOUBLE);
+
+            dataset.read( pointing, pointing_h5type, memspace, dataspace );
+            
+            for (int i = 0; i < nElements; i++)
+                {
+                    pix[i] = pointing[i].pix;
+                    qw[i] = pointing[i].qw;
+                    uw[i] = pointing[i].uw;
+                }
+
+        } else { 
+
         CompType pointing_h5type( sizeof(int) );
         pointing_h5type.insertMember( MEMBER1, 0, PredType::NATIVE_INT);
         dataset.read(pix, pointing_h5type, memspace, dataspace );
@@ -104,6 +126,8 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         CompType pointing_h5typeuw( sizeof(double) );
         pointing_h5typeuw.insertMember( MEMBER3, 0, PredType::NATIVE_DOUBLE);
         dataset.read(uw, pointing_h5typeuw, memspace, dataspace );
+
+        }
     }
     return 0;
 }

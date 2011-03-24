@@ -65,6 +65,8 @@ do  {
     LOOPS++;
 } while (SAMPLES_PER_PROC > MAX_SAMPLES_PER_PROC);
 
+SAMPLES_PER_PROC = dm->getLengthPerChannel()/Comm.NumProc()/LOOPS+2;
+log(MyPID, format("%d loops: Samples per proc [mil]: %.10d") % LOOPS % (SAMPLES_PER_PROC/1.e6));
 
 log(MyPID, format("Samples per proc [mil]: %.10d") % (SAMPLES_PER_PROC/1.e6));
 //Epetra_BlockMap Map(dm->getDatasetLength(), 1, 0, Comm);
