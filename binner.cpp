@@ -59,7 +59,7 @@ if (dm->DEBUG) {
 log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getDatasetLength()/1.e6));
 log(MyPID, format("Elements per channel [mil]: %.10d") % (dm->getLengthPerChannel()/1.e6));
 do  {
-    SAMPLES_PER_PROC = dm->getLengthPerChannel()/Comm.NumProc()/LOOPS;
+    SAMPLES_PER_PROC = dm->getLengthPerChannel()/Comm.NumProc()/LOOPS+1;
     log(MyPID, format("%d loops: Samples per proc [mil]: %.10d") % LOOPS % (SAMPLES_PER_PROC/1.e6));
     LOOPS++;
 } while (SAMPLES_PER_PROC > MAX_SAMPLES_PER_PROC);
