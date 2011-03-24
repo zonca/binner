@@ -73,8 +73,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
             cout << "istart " << iStart << " new nElem " << nElements << endl;
         }
 
-        //cout << "Channel " << channel << endl;
-        DataSet dataset = file.openDataSet( channel );
+        DataSet dataset = file.openDataSet( "pix" );
 
         //DATASPACE
         DataSpace dataspace = dataset.getSpace();
@@ -94,40 +93,24 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         DataSpace memspace( 1, dimsm );
         memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
 
-        bool READ_COMPOUND = true;
+        dataset.read(pix, PredType::NATIVE_INT, memspace, dataspace );
 
-        if (READ_COMPOUND) {
+        DataSet dataset = file.openDataSet( "qw" );
+        //DATASPACE
+        dataspace = dataset.getSpace();
+        dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+        //MEMSPACE
+        memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+        dataset.read(qw, PredType::NATIVE_DOUBLE, memspace, dataspace );
 
-            pointing_t pointing[nElements];
-            CompType pointing_h5type( sizeof(pointing_t) );
-            pointing_h5type.insertMember( MEMBER1, HOFFSET(pointing_t, pix), PredType::NATIVE_INT);
-            pointing_h5type.insertMember( MEMBER2, HOFFSET(pointing_t, qw), PredType::NATIVE_DOUBLE);
-            pointing_h5type.insertMember( MEMBER3, HOFFSET(pointing_t, uw), PredType::NATIVE_DOUBLE);
-
-            dataset.read( pointing, pointing_h5type, memspace, dataspace );
-            
-            for (int i = 0; i < nElements; i++)
-                {
-                    pix[i] = pointing[i].pix;
-                    qw[i] = pointing[i].qw;
-                    uw[i] = pointing[i].uw;
-                }
-
-        } else { 
-
-        CompType pointing_h5type( sizeof(int) );
-        pointing_h5type.insertMember( MEMBER1, 0, PredType::NATIVE_INT);
-        dataset.read(pix, pointing_h5type, memspace, dataspace );
-
-        CompType pointing_h5typeqw( sizeof(double) );
-        pointing_h5typeqw.insertMember( MEMBER2, 0, PredType::NATIVE_DOUBLE);
-        dataset.read(qw, pointing_h5typeqw, memspace, dataspace );
-
-        CompType pointing_h5typeuw( sizeof(double) );
-        pointing_h5typeuw.insertMember( MEMBER3, 0, PredType::NATIVE_DOUBLE);
-        dataset.read(uw, pointing_h5typeuw, memspace, dataspace );
-
-        }
+        DataSet dataset = file.openDataSet( "uw" );
+        //DATASPACE
+        dataspace = dataset.getSpace();
+        dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
+        //MEMSPACE
+        memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
+        dataset.read(uw, PredType::NATIVE_DOUBLE, memspace, dataspace );
+        
     }
     return 0;
 }
