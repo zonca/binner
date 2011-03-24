@@ -95,7 +95,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
 
         dataset.read(pix, PredType::NATIVE_INT, memspace, dataspace );
 
-        DataSet dataset = file.openDataSet( "qw" );
+        dataset = file.openDataSet( "qw" );
         //DATASPACE
         dataspace = dataset.getSpace();
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
@@ -103,7 +103,7 @@ int H5PlanckDataManager::getPointing(string channel, long iStart, int nElements,
         memspace.selectHyperslab( H5S_SELECT_SET, count_out, offset_out );
         dataset.read(qw, PredType::NATIVE_DOUBLE, memspace, dataspace );
 
-        DataSet dataset = file.openDataSet( "uw" );
+        dataset = file.openDataSet( "uw" );
         //DATASPACE
         dataspace = dataset.getSpace();
         dataspace.selectHyperslab( H5S_SELECT_SET, count, offset );
