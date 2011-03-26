@@ -19,10 +19,10 @@ for comb in itertools.combinations(STOKES, 2):
 
 for type in types:
     print(type)
-    s=sorted(glob.glob('%s_*.h5' % type))
+    s=sorted(glob.glob('out/%s_*.h5' % type))
     if s:
         cat = np.concatenate([h5py.File(f)['Vector'].value for f in s])
-        healpy.write_map(type + ".fits", cat[:-1],nest=True)
+        healpy.write_map('fits/' + type + ".fits", cat[:-1],nest=True)
     else:
         print('Nothing to do')
 
