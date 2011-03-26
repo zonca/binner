@@ -30,7 +30,7 @@ elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     #set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
     #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 
-    target_link_libraries(binner H5PlanckDataManager epetra hdf5 hdf5_cpp)
+    target_link_libraries(binner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(binner H5PlanckDataManager trilinos_epetra hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)

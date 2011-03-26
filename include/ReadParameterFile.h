@@ -2,6 +2,10 @@
 #define READPARAMETERFILE_H
 
 #include "H5PlanckDataManager.h"
+#include "Teuchos_ParameterList.hpp"
+#include "Teuchos_Array.hpp"
+#include "Teuchos_XMLParameterListHelpers.hpp"
+#include "Teuchos_RCP.hpp"
 
 typedef std::map<string, double> WeightDict;
 
@@ -26,46 +30,37 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     //Weights["LFI27"] = 363767.99;
     //Weights["LFI28"] = 342751.11;
 
-    bool DEBUG = false;
-    bool SPURIOUS = true;
-    int NSIDE;
     string dataPath, pointingPath;
 
-    int firstOD, lastOD;
-    int freq = 70;
+    Teuchos::RCP<Teuchos::ParameterList> Config=Teuchos::getParametersFromXmlFile(parameterFilename);
 
-    dataPath = str( format("/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d") % freq );
+    int freq = Config->get("Frequency", 70);
 
-    NSIDE = 1024;
-    firstOD = 91;
-    lastOD = 563;
-
-    if (DEBUG) {
-        pointingPath = "/home/zonca/p/testdata/dx4_1_nest_30_9293.h5";
-        dataPath = "/home/zonca/p/testdata/lfi_ops_dx4.h5";
-        NSIDE = 1;
-        firstOD = 93;
-        lastOD = 93;
-    } else {
-        pointingPath = str( format("/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d") % NSIDE % freq );
-    }
-    vector<string> channels;
+    Teuchos::Array<string> channels;
     channels.push_back("LFI18M");
     channels.push_back("LFI18S");
     channels.push_back("LFI23M");
     channels.push_back("LFI23S");
+    channels = Config->get("Channels", channels);
 
+    dm->DEBUG = Config->get("Debug", false);
+    dm->NSIDE = Config->get("NSIDE", 1024);
 
-    dm = new H5PlanckDataManager(firstOD, lastOD, channels, dataPath, pointingPath, Weights);
-    if (DEBUG) {
+    pointingPath = str( format(Config->get("PointingPath", "/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d")) % dm->NSIDE % freq );
+    dataPath = str( format(Config->get("DataPath", "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d/")) % freq );
+
+    dm = new H5PlanckDataManager(Config->get("FirstOD", 91), Config->get("LastOD", 563), channels, dataPath, pointingPath, Weights);
+
+    if (dm->DEBUG) {
         dm->setLengthPerChannel(30);
     }
-    dm->NSIDE = NSIDE;
+    //Teuchos::writeParameterListToXmlFile(Config, parameterFilename);
     dm->NSTOKES = 3;
-    if (SPURIOUS) {
+    if (Config->get("Spurious", false)) {
         dm->NSTOKES += channels.size()/2.;
     }
-    dm->DEBUG = DEBUG;
+
+    cout << *Config << endl;
 }
 
 #endif

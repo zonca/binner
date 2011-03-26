@@ -18,6 +18,7 @@
 #include "Epetra_IntVector.h"
 #include "Epetra_DataAccess.h"
 #include "Epetra_Time.h"
+#include "Teuchos_CommandLineProcessor.hpp"
 
 #include "H5PlanckDataManager.h"
 #include "CreateMatrices.h"
@@ -39,6 +40,11 @@ int main(int argc, char *argv[])
   Epetra_SerialComm Comm;
 #endif  
 
+Teuchos::CommandLineProcessor My_CLP;
+string parameterFilename = "config.xml";
+My_CLP.setOption("p", &parameterFilename, "Parameter filename");
+My_CLP.parse( argc, argv );
+
 int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
@@ -46,10 +52,10 @@ int SAMPLES_PER_PROC;
 int MAX_SAMPLES_PER_PROC = 4e6;
 int LOOPS = 1;
 
+
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
 
-string parameterFilename = "notimplemented.dat";
 readParameterFile(parameterFilename, dm);
 
 if (dm->DEBUG) {

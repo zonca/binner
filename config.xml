@@ -1,0 +1,9 @@
+<ParameterList>
+  <Parameter name="Frequency" type="int" value="70"/>
+  <Parameter name="Channels" type="Array string" value="{LFI18M, LFI18S, LFI23M, LFI23S}"/>
+  <Parameter name="FirstOD" type="int" value="91"/>
+  <Parameter name="LastOD" type="int" value="563"/>
+  <Parameter name="PointingPath" type="string" value="/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d/"/>
+  <Parameter name="Spurious" type="bool" value="true"/>
+</ParameterList>
+

@@ -13,11 +13,13 @@
 
 #include "H5PlanckDataManager.h"
 
+
 using boost::format;
 using namespace std;
 using namespace H5;
 
-H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, vector<string> Channels, string DataPath, string PointingPath, WeightDict Weights) : Channels(Channels),
+
+H5PlanckDataManager::H5PlanckDataManager(int FirstOd,int  LastOd, Teuchos::Array<string> Channels, string DataPath, string PointingPath, WeightDict Weights) : Channels(Channels),
     DataPath(DataPath), PointingPath(PointingPath), Weights(Weights)
 {
     H5File file( PointingPath+".h5", H5F_ACC_RDONLY );
