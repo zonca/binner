@@ -52,10 +52,10 @@ int SAMPLES_PER_PROC;
 int MAX_SAMPLES_PER_PROC = 4e6;
 int LOOPS = 1;
 
-
 Epetra_Time time(Comm);
 H5PlanckDataManager* dm;
 
+log(MyPID, parameterFilename);
 readParameterFile(parameterFilename, dm);
 
 if (dm->DEBUG) {
@@ -226,11 +226,11 @@ log(MyPID,"Writing SUMMAP");
 
 time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
-    WriteH5Vec(summap(j), "summap_" + LABEL[j]);
+    WriteH5Vec(summap(j), "summap_" + LABEL[j], dm->outputFolder);
 }
 log(MyPID, format("%f") % time.ElapsedTime());
 
-WriteH5Vec(hitmap, "hitmap");
+WriteH5Vec(hitmap, "hitmap", dm->outputFolder);
 
 log(MyPID,"Computing RCOND and Inverting");
 time.ResetStartTime();
@@ -241,12 +241,12 @@ invertM(PixMap, dm, M, rcond, summap);
 log(MyPID, format("%f") % time.ElapsedTime());
 
 
-WriteH5Vec(&rcond, "rcondmap");
+WriteH5Vec(&rcond, "rcondmap", dm->outputFolder);
 
 log(MyPID,"Writing BINMAP");
 time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
-    WriteH5Vec(summap(j), "binmap_" + LABEL[j]);
+    WriteH5Vec(summap(j), "binmap_" + LABEL[j], dm->outputFolder);
 }
 log(MyPID, format("%f") % time.ElapsedTime());
 
@@ -255,7 +255,7 @@ time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
     for (int k=j; k<dm->NSTOKES; ++k) {
         i_M = dm->getIndexM(j, k);
-        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k]);
+        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
     }
 }
 log(MyPID, format("%f") % time.ElapsedTime());

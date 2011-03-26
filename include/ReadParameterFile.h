@@ -30,31 +30,27 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     //Weights["LFI27"] = 363767.99;
     //Weights["LFI28"] = 342751.11;
 
-    string dataPath, pointingPath;
-
     Teuchos::RCP<Teuchos::ParameterList> Config=Teuchos::getParametersFromXmlFile(parameterFilename);
 
     int freq = Config->get("Frequency", 70);
 
-    Teuchos::Array<string> channels;
-    channels.push_back("LFI18M");
-    channels.push_back("LFI18S");
-    channels.push_back("LFI23M");
-    channels.push_back("LFI23S");
-    channels = Config->get("Channels", channels);
+    Teuchos::Array<string> channels = Config->template get<Teuchos::Array<string> >("Channels");
 
-    dm->DEBUG = Config->get("Debug", false);
-    dm->NSIDE = Config->get("NSIDE", 1024);
-
-    pointingPath = str( format(Config->get("PointingPath", "/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d")) % dm->NSIDE % freq );
-    dataPath = str( format(Config->get("DataPath", "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d/")) % freq );
+    int NSIDE = Config->get("Nside", 1024);
+    string pointingPath = str( format(Config->get("PointingPath", "/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d")) % NSIDE % freq );
+    string dataPath = str( format(Config->get("DataPath", "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d")) % freq );
 
     dm = new H5PlanckDataManager(Config->get("FirstOD", 91), Config->get("LastOD", 563), channels, dataPath, pointingPath, Weights);
+
+    dm->DEBUG = Config->get("Debug", false);
+    dm->NSIDE=NSIDE;
+
+    dm->outputFolder = Config->get("OutputFolder", "/scratch/scratchdirs/zonca/out");
 
     if (dm->DEBUG) {
         dm->setLengthPerChannel(30);
     }
-    //Teuchos::writeParameterListToXmlFile(Config, parameterFilename);
+    ////Teuchos::writeParameterListToXmlFile(Config, parameterFilename);
     dm->NSTOKES = 3;
     if (Config->get("Spurious", false)) {
         dm->NSTOKES += channels.size()/2.;

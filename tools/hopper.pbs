@@ -1,5 +1,5 @@
 #PBS -S /bin/bash
-#PBS -l mppwidth=192 
+#PBS -l mppwidth=240 
 #PBS -l walltime=00:30:00
 #PBS -N binner
 #PBS -q debug
@@ -12,4 +12,4 @@ ulimit -s unlimited
 
 cd $PBS_O_WORKDIR
 rm *.fits
-time aprun -n 192 ./binner &> out/log.txt
+time aprun -n 240 ./binner &> /scratch/scratchdirs/zonca/out/1823/log.txt

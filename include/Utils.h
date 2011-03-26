@@ -23,9 +23,9 @@ int log(int MyPID, format message) {
 
 } 
 
-int WriteH5Vec(Epetra_Vector * vec, string filename) {
+int WriteH5Vec(Epetra_Vector * vec, string filename, string outputFolder) {
     int MyPID = vec->Comm().MyPID();
-    H5std_string  FILE_NAME( str( format("/scratch/scratchdirs/zonca/out/%s_%03d.h5") % filename % MyPID ) );
+    H5std_string  FILE_NAME( str( format(outputFolder + "/%s_%03d.h5") % filename % MyPID ) );
     H5File file(FILE_NAME, H5F_ACC_TRUNC );
     hsize_t dimsf[1];
     dimsf[0] = vec->Map().NumMyElements();

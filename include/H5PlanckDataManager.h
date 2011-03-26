@@ -48,6 +48,7 @@ class H5PlanckDataManager
         int NSIDE;
         bool DEBUG;
         int NSTOKES;
+        string outputFolder;
         double getNPIX(void){
             return 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
         }
