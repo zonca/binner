@@ -56,7 +56,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
         dm->NSTOKES += channels.size()/2.;
     }
 
-    cout << *Config << endl;
+    //cout << *Config << endl;
 }
 
 #endif

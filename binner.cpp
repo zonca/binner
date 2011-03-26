@@ -49,7 +49,7 @@ int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
 int SAMPLES_PER_PROC;
-int MAX_SAMPLES_PER_PROC = 4e6;
+int MAX_SAMPLES_PER_PROC = 5e6;
 int LOOPS = 1;
 
 Epetra_Time time(Comm);

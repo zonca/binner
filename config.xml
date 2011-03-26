@@ -8,6 +8,5 @@
   <Parameter name="PointingPath" type="string" value="/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d"/>
   <Parameter name="OutputFolder" type="string" value="/scratch/scratchdirs/zonca/out/1823"/>
   <Parameter name="Spurious" type="bool" value="true"/>
-  <Parameter name="Debug" type="bool" value="false"/>
 </ParameterList>
 
