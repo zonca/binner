@@ -27,7 +27,7 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     //Weights["LFI28"] = 342751.11;
 
     bool DEBUG = false;
-    bool SPURIOUS = false;
+    bool SPURIOUS = true;
     int NSIDE;
     string dataPath, pointingPath;
 

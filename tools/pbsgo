@@ -1,6 +1,2 @@
-rm binmap.fits
-rm hitmap.fits
-rm log.txt
 rm binner.oe
-make
-qsub go.pbs
+make binner && qsub hopper.pbs
