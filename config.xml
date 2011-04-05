@@ -1,12 +1,10 @@
 <ParameterList>
-  <Parameter name="Frequency" type="int" value="70"/>
   <Parameter name="Nside" type="int" value="1024"/>
-  <Parameter name="Channels" type="Array string" value="{LFI18M, LFI18S, LFI23M, LFI23S}"/>
-  <Parameter name="FirstOD" type="int" value="91"/>
-  <Parameter name="LastOD" type="int" value="563"/>
-  <Parameter name="DataPath" type="string" value="/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d"/>
-  <Parameter name="PointingPath" type="string" value="/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d"/>
-  <Parameter name="OutputFolder" type="string" value="/scratch/scratchdirs/zonca/out/1823"/>
-  <Parameter name="Spurious" type="bool" value="true"/>
+  <Parameter name="Channels" type="Array string" value="{ch1q, ch1u}"/>
+  <Parameter name="FirstOD" type="int" value="1"/>
+  <Parameter name="LastOD" type="int" value="2"/>
+  <Parameter name="DataPath" type="string" value="data/bmachine"/>
+  <Parameter name="PointingPath" type="string" value="data/bmachine/"/>
+  <Parameter name="OutputFolder" type="string" value="out"/>
 </ParameterList>
 

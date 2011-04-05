@@ -19,20 +19,21 @@ elseif ($ENV{NERSC_HOST} STREQUAL canopus)
 
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
-add_library(H5PlanckDataManager H5PlanckDataManager.cpp)
+add_library(DataManager DataManager.cpp)
+add_library(read_fits_lib read_fits_lib.c)
 
-add_executable(binner binner.cpp)
+add_executable(dst dst.cpp)
 #add_executable(testFEVbr testFEVbr.cpp)
 
 if ($ENV{NERSC_HOST} STREQUAL carver)
-    target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
+    target_link_libraries(binner DataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5 teuchos)
 elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     #set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
     #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 
-    target_link_libraries(binner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
+    target_link_libraries(binner DataManager epetra teuchos hdf5 hdf5_cpp teuchos)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
-    target_link_libraries(binner H5PlanckDataManager trilinos_epetra hdf5 hdf5_cpp)
+    target_link_libraries(dst read_fits_lib DataManager trilinos_epetra hdf5 hdf5_cpp trilinos_teuchos cfitsio)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 #set(CMAKE_BUILD_TYPE Release)
