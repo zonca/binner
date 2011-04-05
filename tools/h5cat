@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import glob
 import h5py
 import numpy as np
@@ -8,7 +9,10 @@ import itertools
 
 types = ['hitmap', 'rcondmap']
 
-STOKES = ['I','Q','U','S1','S2','S3']
+STOKES = ['I','Q','U']
+
+for i in range(1,6+1):
+    STOKES.append('S%d' % i)
 
 for map in ['binmap', 'summap']:
     for S in STOKES:
@@ -19,10 +23,10 @@ for comb in itertools.combinations(STOKES, 2):
 
 for type in types:
     print(type)
-    s=sorted(glob.glob('out/%s_*.h5' % type))
+    s=sorted(glob.glob(sys.argv[1] + '/%s_*.h5' % type))
     if s:
         cat = np.concatenate([h5py.File(f)['Vector'].value for f in s])
-        healpy.write_map('fits/' + type + ".fits", cat[:-1],nest=True)
+        healpy.write_map(sys.argv[1] + '/' + type + ".fits", cat[:-1],nest=True)
     else:
         print('Nothing to do')
 

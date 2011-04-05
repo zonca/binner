@@ -37,8 +37,8 @@ void readParameterFile(string parameterFilename, H5PlanckDataManager *& dm) {
     Teuchos::Array<string> channels = Config->template get<Teuchos::Array<string> >("Channels");
 
     int NSIDE = Config->get("Nside", 1024);
-    string pointingPath = str( format(Config->get("PointingPath", "/scratch/scratchdirs/zonca/pointing/dx6_%d_horn_nest_%d")) % NSIDE % freq );
-    string dataPath = str( format(Config->get("DataPath", "/scratch/scratchdirs/zonca/pointing/lfi_ops_dx6_%d")) % freq );
+    string pointingPath = str( format(Config->get("PointingPath", "/scratch/scratchdirs/zonca/pointing/%d/dx6_%d_horn_nest_%d")) % freq % NSIDE % freq );
+    string dataPath = str( format(Config->get("DataPath", "/scratch/scratchdirs/zonca/pointing/%d/lfi_ops_dx6_%d")) % freq % freq );
 
     dm = new H5PlanckDataManager(Config->get("FirstOD", 91), Config->get("LastOD", 563), channels, dataPath, pointingPath, Weights);
 

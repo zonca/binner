@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 rm *.jpg
-TAG='70GHz_18-23'
+TAG='70GHz_9x9'
 for f in rcond*.png
 do
     echo $f
