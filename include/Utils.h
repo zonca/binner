@@ -7,6 +7,7 @@
 
 using namespace std;
 using boost::format;
+using namespace H5;
 
 int log(int MyPID, string message) {
 

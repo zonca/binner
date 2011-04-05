@@ -22,12 +22,12 @@
 #include <Epetra_SerialDenseSolver.h>
 #include "Epetra_Time.h"
 
-#include "H5PlanckDataManager.h"
+#include "DataManager.h"
 #include "Utils.h"
 
 using namespace std;
 
-int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_IntVector & pix, Epetra_CrsGraph* &Graph) {
+int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
 
     int * MyGlobalElements = Map.MyGlobalElements();
 
@@ -42,7 +42,7 @@ int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_In
 
     log(MyPID, "Assembling Graph");
     for( int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local rows
-            Indices[0] = pix[i];
+            Indices[0] = int(pix[i]);
             //cout << "0: " <<Indices[0] << " 1: " << Indices[1] << " 2: " << Indices[2] << endl;
             Graph->InsertGlobalIndices(MyGlobalElements[i], 1, Indices);
     }
@@ -55,7 +55,7 @@ int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_In
     return 0;
 }
 
-void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVector& M, Epetra_Vector& rcond, Epetra_MultiVector& summap) {
+void invertM(const Epetra_Map& PixMap, DataManager* dm, Epetra_MultiVector& M, Epetra_Vector& rcond, Epetra_MultiVector& summap) {
 
     int MyPID = PixMap.Comm().MyPID();
     int * PixMyGlobalElements = PixMap.MyGlobalElements();

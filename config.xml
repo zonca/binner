@@ -1,5 +1,5 @@
 <ParameterList>
-  <Parameter name="Nside" type="int" value="1024"/>
+  <Parameter name="Nside" type="int" value="256"/>
   <Parameter name="Channels" type="Array string" value="{ch1q, ch1u}"/>
   <Parameter name="FirstOD" type="int" value="1"/>
   <Parameter name="LastOD" type="int" value="2"/>
