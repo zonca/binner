@@ -44,8 +44,8 @@ BOOST_AUTO_TEST_CASE( test_getdata_across )
     data = new double[10];
     DataManager dm1(1, 2, channels, "data/test_qu","data/test_qu");
     dm1.getData("data", 28, 10, data);
-    BOOST_CHECK_CLOSE(data[0], -2.1584559306791382, 1e-9); //28th elem of 01
-    BOOST_CHECK_CLOSE(data[9], 1.5616284167162193, 1e-9);  //7th elem of 02
+    BOOST_CHECK_CLOSE(data[0], 1.8415440693208618, 1e-9); //28th elem of 01
+    BOOST_CHECK_CLOSE(data[9], -0.43837158328378062, 1e-9);  //7th elem of 02
 }
 
 BOOST_AUTO_TEST_CASE( test_qw_across )
@@ -56,5 +56,40 @@ BOOST_AUTO_TEST_CASE( test_qw_across )
     dm1.getData("qw", 28, 10, data);
     BOOST_CHECK_CLOSE(data[0], -0.98480775301220802, 1e-9); //28th elem of 01
     BOOST_CHECK_CLOSE(data[9], -0.64278760968653925, 1e-9);  //7th elem of 02
+}
+BOOST_AUTO_TEST_CASE( test_adjustdistribution )
+{
+    DataManager dm(1, 2, channels, "data/test_qu","data/test_qu");
+    dm.BaselineLength = 4;
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,4), 4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,5), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,6), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,7), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,8), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(0,9), 12);
+
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,3), 4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(3,3), 4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,7), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,8), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,10), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,11), 12);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,12), 12);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(2,14), 12);
+
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(30,4), 4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(30,5), 8);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(30,6), 8);
+}
+
+BOOST_AUTO_TEST_CASE( test_adjustdistribution_across )
+{
+    DataManager dm(1, 2, channels, "data/test_qu","data/test_qu");
+    dm.BaselineLength = 4;
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(26,5), 2+4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(26,6), 2+4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(26,7), 2+4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(26,8), 2+4);
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(26,9), 2+8);
 }
 BOOST_AUTO_TEST_SUITE_END()

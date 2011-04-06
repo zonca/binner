@@ -49,8 +49,6 @@ int MyPID = Comm.MyPID();
 int i_M, a, s_index;
 
 int MAX_SAMPLES_PER_PROC = 5e6;
-bool hasI = true;
-
 
 Epetra_Time time(Comm);
 DataManager* dm;
@@ -58,14 +56,15 @@ DataManager* dm;
 log(MyPID, parameterFilename);
 readParameterFile(parameterFilename, dm);
 
+bool hasI = dm->NSTOKES>2;
 log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getLength()/1.e6));
 
-if (dm->NSTOKES < 3) {
-    hasI = false;
-}
-Epetra_Map Map(dm->getLength(), 0, Comm);
+Epetra_Map LinearMap(dm->getLength(), 0, Comm);
 
 int NumMyElements = Map.NumMyElements();
+int MinMyGID = Map.MinMyGID();
+
+NumMyElements = dm->adjustDistribution(MinMyGID, NumMyElements);
 
 cout << "My elements:" << NumMyElements <<endl;
 

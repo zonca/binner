@@ -33,9 +33,10 @@ class DataManager
             return fileLengths.back();
         };
 
+        int adjustDistribution(int MinMyGID, int NumMyElements);
         int NSIDE;
         bool DEBUG;
-        int NSTOKES;
+        int NSTOKES, BaselineLength;
         string outputFolder;
         double getNPIX(void){
             return 12. * NSIDE * NSIDE +1; //total pixel size, each pixel is an element which contains 3 floats which are IQU
