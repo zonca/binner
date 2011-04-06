@@ -80,6 +80,8 @@ BOOST_AUTO_TEST_CASE( test_adjustdistribution )
     BOOST_CHECK_EQUAL(dm.adjustDistribution(30,4), 4);
     BOOST_CHECK_EQUAL(dm.adjustDistribution(30,5), 8);
     BOOST_CHECK_EQUAL(dm.adjustDistribution(30,6), 8);
+
+    BOOST_CHECK_EQUAL(dm.adjustDistribution(39,9), 6);
 }
 
 BOOST_AUTO_TEST_CASE( test_adjustdistribution_across )

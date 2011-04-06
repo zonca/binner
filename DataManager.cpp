@@ -64,9 +64,9 @@ int DataManager::adjustDistribution(int iStart, int nElements) {
     //left boundary - every element is LOST to the prev Proc
     LostElements = (iStart-fileStart) % BaselineLength;
     int NewIstart = ceil((float)(iStart-fileStart)/BaselineLength) * BaselineLength;
-    cout << "FirstDatasetIndex:" << FirstDatasetIndex << " iStart:" << iStart << "fileStart:" << fileStart <<" nElements:" << nElements << " NewIstart:" << NewIstart << endl;
+    //cout << "FirstDatasetIndex:" << FirstDatasetIndex << " iStart:" << iStart << "fileStart:" << fileStart <<" nElements:" << nElements << " NewIstart:" << NewIstart << endl;
     if (NewIstart > 0) {
-        AdjustedNumMyElements -= NewIstart - iStart;
+        AdjustedNumMyElements -= NewIstart - (iStart-fileStart);
     }
 
     if (LastDatasetIndex == 0) {
@@ -80,7 +80,7 @@ int DataManager::adjustDistribution(int iStart, int nElements) {
         NewLen = ceil((float)LastFilenElements/BaselineLength) * BaselineLength;
         NewLen = min(NewLen, int(fileLengths[LastDatasetIndex] - fileStart));
         AdjustedNumMyElements += NewLen - LastFilenElements;
-    cout << "iStart:" << iStart << "fileStart:" << fileStart <<" LastFilenElements:" << LastFilenElements << " NewLen:" << NewLen << endl;
+    //cout << "iStart:" << iStart << "fileStart:" << fileStart <<" LastFilenElements:" << LastFilenElements << " NewLen:" << NewLen << endl;
     }
 
     return AdjustedNumMyElements;

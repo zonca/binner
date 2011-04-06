@@ -61,178 +61,185 @@ log(MyPID, format("Number of elements [mil]: %.10d") % (dm->getLength()/1.e6));
 
 Epetra_Map LinearMap(dm->getLength(), 0, Comm);
 
-int NumMyElements = Map.NumMyElements();
-int MinMyGID = Map.MinMyGID();
+cout << LinearMap << endl;
 
-NumMyElements = dm->adjustDistribution(MinMyGID, NumMyElements);
+int NumMyElements = dm->adjustDistribution(LinearMap.MinMyGID(), LinearMap.NumMyElements());
 
-cout << "My elements:" << NumMyElements <<endl;
-
-Epetra_Map PixMap(dm->getNPIX(),0,Comm);
-Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
-
-// declaring matrices
-log(MyPID,"POINTING MATRIX");
-Epetra_MultiVector summap(PixMap, dm->NSTOKES);
-Epetra_MultiVector M(PixMap, dm->NSTOKES * (dm->NSTOKES + 1) / 2);
-Epetra_Vector tempmap(PixMap);
-Epetra_Vector * hitmap = new Epetra_Vector(PixMap);
-Epetra_CrsMatrix * P;
-Epetra_CrsGraph * Graph; 
-
-Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
-
-double ** yqu_view = new double *[3];
-yqu.ExtractView(&yqu_view);
-
-string LABEL[3] = {"I", "Q", "U"};
-
-if (!hasI)  {
-    LABEL[0]="Q"; LABEL[1]="U";
-}
-
-Epetra_Vector pix = Epetra_Vector(Map);
-//Epetra_IntVector pix = Epetra_IntVector(Map);
-
-double * pix_view;
-pix.ExtractView(&pix_view);
-
-Epetra_Vector tempvec = Epetra_Vector(Map);
-
-double weight = 1.;
-int ch_number = 0;
-
-log(MyPID,"READ POINTING");
-time.ResetStartTime();
-dm->getData("pointing", Map.MinMyGID(), NumMyElements, pix_view);
-dm->getData("qw", Map.MinMyGID(), NumMyElements, yqu_view[1]);
-dm->getData("uw", Map.MinMyGID(), NumMyElements, yqu_view[2]);
-log(MyPID, format("Read data timer %f") % time.ElapsedTime());
-
-log(MyPID,"READ DATA");
-time.ResetStartTime();
-dm->getData("data", Map.MinMyGID(), NumMyElements, yqu_view[0]);
-log(MyPID, format("Read data timer %f") % time.ElapsedTime());
-
-time.ResetStartTime();
-createGraph(Map, PixMap, pix, Graph);
-log(MyPID, format("Create Graph timer %f") % time.ElapsedTime());
-
-time.ResetStartTime();
-P = new Epetra_CrsMatrix(Copy, *Graph);
-P->PutScalar(1.);
-P->FillComplete(PixMap, Map);
-log(MyPID, format("Create P timer %f") % time.ElapsedTime());
-
-log(MyPID,"SUM MAP");
-time.ResetStartTime();
-
-////// I
-if (hasI) {
-    log(MyPID,"I");
-    P->Multiply1(true,*(yqu(0)),tempmap); //SUMMAP = Pt y
-    summap(0)->Update(weight, tempmap, 1.);
-    log(MyPID, format("%f") % time.ElapsedTime());
-}
-
-time.ResetStartTime();
-log(MyPID,"HitMap");
-tempvec.PutScalar(1.);
-P->Multiply1(true,tempvec,tempmap);
-hitmap->Update(1., tempmap, 1.);
-log(MyPID, format("%f") % time.ElapsedTime());
-time.ResetStartTime();
-
-WriteH5Vec(hitmap, "hitmap", dm->outputFolder);
-delete hitmap;
-
-// Q U
-log(MyPID,"QU");
-int qu_i=0;
-for (int i=1; i<3; ++i) { // Q=1 U=2
-    tempvec.Multiply(1., *(yqu(0)), *(yqu(i)), 0.);
-    P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-    if (hasI) {
-        qu_i = i;
-    } else {
-        qu_i = i-1;
-    }
-    summap(qu_i)->Update(weight, tempmap, 1.);
-}
-log(MyPID, format("%f") % time.ElapsedTime());
-
-log(MyPID, "Create M");
-log(MyPID, "IQU loop");
-time.ResetStartTime();
-if (hasI) {
-    for (int j=0; j<3; ++j) {
-        for (int k=j; k<3; ++k) {
-            log(MyPID,format("M %d %d") % j % k);
-            if (k == 0) { //also j=0
-                tempvec.PutScalar(1.);
-            } else if (j == 0 ) {
-                tempvec.Update(1., *(yqu(k)), 0.);
-            } else {
-                tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
-            }
-            P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-            i_M = dm->getIndexM(j, k);
-            log(MyPID, format("Setting M %d") % i_M );
-            M(i_M)->Update(weight, tempmap, 1.);
-        }
-    } // M loop IQU
-} else {
-    for (int j=0; j<2; ++j) {
-        for (int k=j; k<2; ++k) {
-            log(MyPID,format("M %d %d") % j % k);
-            tempvec.Multiply(1., *(yqu(j+1)), *(yqu(k+1)), 0.);
-            i_M = dm->getIndexM(j, k);
-            P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
-            log(MyPID, format("Setting M %d") % i_M );
-            M(i_M)->Update(weight, tempmap, 1.);
-        }
-    } // M loop IQU
-}
-log(MyPID, format("IQU loop: %f") % time.ElapsedTime());
-
-delete P;
-delete Graph;
-
-log(MyPID,"Writing SUMMAP");
-
-time.ResetStartTime();
-for (int j=0; j<dm->NSTOKES; ++j) {
-    WriteH5Vec(summap(j), "summap_" + LABEL[j], dm->outputFolder);
-}
-log(MyPID, format("%f") % time.ElapsedTime());
-
-
-log(MyPID,"Computing RCOND and Inverting");
-time.ResetStartTime();
-Epetra_Vector rcond(PixMap);
-
-Epetra_Vector binmap(PixMap);
-invertM(PixMap, dm, M, rcond, summap);
-log(MyPID, format("%f") % time.ElapsedTime());
-
-WriteH5Vec(&rcond, "rcondmap", dm->outputFolder);
-
-log(MyPID,"Writing BINMAP");
-time.ResetStartTime();
-for (int j=0; j<dm->NSTOKES; ++j) {
-    WriteH5Vec(summap(j), "binmap_" + LABEL[j], dm->outputFolder);
-}
-log(MyPID, format("%f") % time.ElapsedTime());
-
-log(MyPID,"Writing M");
-time.ResetStartTime();
-for (int j=0; j<dm->NSTOKES; ++j) {
-    for (int k=j; k<dm->NSTOKES; ++k) {
-        i_M = dm->getIndexM(j, k);
-        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
-    }
-}
-log(MyPID, format("%f") % time.ElapsedTime());
+cout << "ID:" << MyPID << "Before:"<< LinearMap.NumMyElements()<< "My elements:" << NumMyElements <<endl;
+//Epetra_Map Map(dm->getLength(), NumMyElements, 0, Comm);
+//
+//Epetra_Map PixMap(dm->getNPIX(),0,Comm);
+//Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
+//
+//// declaring matrices
+//log(MyPID,"POINTING MATRIX");
+//Epetra_MultiVector summap(PixMap, dm->NSTOKES);
+//Epetra_MultiVector M(PixMap, dm->NSTOKES * (dm->NSTOKES + 1) / 2);
+//Epetra_Vector tempmap(PixMap);
+//Epetra_Vector * hitmap = new Epetra_Vector(PixMap);
+//Epetra_CrsMatrix * P;
+//Epetra_CrsGraph * Graph; 
+//
+//Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
+//
+//double ** yqu_view = new double *[3];
+//yqu.ExtractView(&yqu_view);
+//
+//string LABEL[3] = {"I", "Q", "U"};
+//
+//if (!hasI)  {
+//    LABEL[0]="Q"; LABEL[1]="U";
+//}
+//
+//Epetra_Vector pix = Epetra_Vector(Map);
+////Epetra_IntVector pix = Epetra_IntVector(Map);
+//
+//double * pix_view;
+//pix.ExtractView(&pix_view);
+//
+//Epetra_Vector tempvec = Epetra_Vector(Map);
+//
+//double weight = 1.;
+//int ch_number = 0;
+//
+//log(MyPID,"READ POINTING");
+//time.ResetStartTime();
+//dm->getData("pointing", Map.MinMyGID(), NumMyElements, pix_view);
+//dm->getData("qw", Map.MinMyGID(), NumMyElements, yqu_view[1]);
+//dm->getData("uw", Map.MinMyGID(), NumMyElements, yqu_view[2]);
+//log(MyPID, format("Read data timer %f") % time.ElapsedTime());
+//
+//log(MyPID,"READ DATA");
+//time.ResetStartTime();
+//dm->getData("data", Map.MinMyGID(), NumMyElements, yqu_view[0]);
+//log(MyPID, format("Read data timer %f") % time.ElapsedTime());
+//
+//time.ResetStartTime();
+//createGraph(Map, PixMap, pix, Graph);
+//log(MyPID, format("Create Graph timer %f") % time.ElapsedTime());
+//
+//time.ResetStartTime();
+//P = new Epetra_CrsMatrix(Copy, *Graph);
+//P->PutScalar(1.);
+//P->FillComplete(PixMap, Map);
+//log(MyPID, format("Create P timer %f") % time.ElapsedTime());
+//
+//log(MyPID,"SUM MAP");
+//time.ResetStartTime();
+//
+//////// I
+//if (hasI) {
+//    log(MyPID,"I");
+//    P->Multiply1(true,*(yqu(0)),tempmap); //SUMMAP = Pt y
+//    summap(0)->Update(weight, tempmap, 1.);
+//    log(MyPID, format("%f") % time.ElapsedTime());
+//}
+//
+//time.ResetStartTime();
+//log(MyPID,"HitMap");
+//tempvec.PutScalar(1.);
+//P->Multiply1(true,tempvec,tempmap);
+//hitmap->Update(1., tempmap, 1.);
+//log(MyPID, format("%f") % time.ElapsedTime());
+//time.ResetStartTime();
+//
+//WriteH5Vec(hitmap, "hitmap", dm->outputFolder);
+//delete hitmap;
+//
+//// Q U
+//log(MyPID,"QU");
+//int qu_i=0;
+//for (int i=1; i<3; ++i) { // Q=1 U=2
+//    tempvec.Multiply(1., *(yqu(0)), *(yqu(i)), 0.);
+//    P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+//    if (hasI) {
+//        qu_i = i;
+//    } else {
+//        qu_i = i-1;
+//    }
+//    summap(qu_i)->Update(weight, tempmap, 1.);
+//}
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
+//log(MyPID, "Create M");
+//log(MyPID, "IQU loop");
+//time.ResetStartTime();
+//if (hasI) {
+//    for (int j=0; j<3; ++j) {
+//        for (int k=j; k<3; ++k) {
+//            log(MyPID,format("M %d %d") % j % k);
+//            if (k == 0) { //also j=0
+//                tempvec.PutScalar(1.);
+//            } else if (j == 0 ) {
+//                tempvec.Update(1., *(yqu(k)), 0.);
+//            } else {
+//                tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
+//            }
+//            P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+//            i_M = dm->getIndexM(j, k);
+//            log(MyPID, format("Setting M %d") % i_M );
+//            M(i_M)->Update(weight, tempmap, 1.);
+//        }
+//    } // M loop IQU
+//} else {
+//    for (int j=0; j<2; ++j) {
+//        for (int k=j; k<2; ++k) {
+//            log(MyPID,format("M %d %d") % j % k);
+//            tempvec.Multiply(1., *(yqu(j+1)), *(yqu(k+1)), 0.);
+//            i_M = dm->getIndexM(j, k);
+//            P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
+//            log(MyPID, format("Setting M %d") % i_M );
+//            M(i_M)->Update(weight, tempmap, 1.);
+//        }
+//    } // M loop IQU
+//}
+//log(MyPID, format("IQU loop: %f") % time.ElapsedTime());
+//
+//delete P;
+//delete Graph;
+//
+//log(MyPID,"Writing SUMMAP");
+//
+//time.ResetStartTime();
+//for (int j=0; j<dm->NSTOKES; ++j) {
+//    WriteH5Vec(summap(j), "summap_" + LABEL[j], dm->outputFolder);
+//}
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
+//
+//log(MyPID,"Computing RCOND and Inverting");
+//time.ResetStartTime();
+//Epetra_Vector rcond(PixMap);
+//
+//Epetra_Vector binmap(PixMap);
+//invertM(PixMap, dm, M, rcond, summap);
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
+//WriteH5Vec(&rcond, "rcondmap", dm->outputFolder);
+//
+//log(MyPID,"Writing BINMAP");
+//time.ResetStartTime();
+//for (int j=0; j<dm->NSTOKES; ++j) {
+//    WriteH5Vec(summap(j), "binmap_" + LABEL[j], dm->outputFolder);
+//}
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
+//log(MyPID,"Writing M");
+//time.ResetStartTime();
+//for (int j=0; j<dm->NSTOKES; ++j) {
+//    for (int k=j; k<dm->NSTOKES; ++k) {
+//        i_M = dm->getIndexM(j, k);
+//        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
+//    }
+//}
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
+////Destriping
+//log(MyPID,"M_time");
+//Epetra_MultiVector M_time(Map, dm->NSTOKES);
+//P->Multiply(false, M, M_time);
+//log(MyPID, format("%f") % time.ElapsedTime());
+//
 
 #ifdef HAVE_MPI
   MPI_Finalize();
