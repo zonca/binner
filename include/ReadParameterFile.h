@@ -18,8 +18,8 @@ void readParameterFile(string parameterFilename, DataManager *& dm) {
     //Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1q");
     //channels = Config->get("Channels",channels);
 
-    //Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1u");
-    Teuchos::Array<string> channels =  Teuchos::tuple<string>("data");
+    Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1u");
+    //Teuchos::Array<string> channels =  Teuchos::tuple<string>("data");
 
     int NSIDE = Config->get("Nside", 1024);
     string pointingPath = str( format(Config->get("PointingPath", "")) );
