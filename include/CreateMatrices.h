@@ -87,7 +87,7 @@ void invertM(const Epetra_Map& PixMap, DataManager* dm, Epetra_MultiVector& M, E
 
         SSolver->SetMatrix(*blockM);
         if ((*blockM)(0,0) > 0) {
-            if ((PixMyGlobalElements[i] % 1000000) == 0) {
+            if ((PixMyGlobalElements[i] % 100000) == 0) {
                 cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
             }
             //rcond_blockM = PixMyGlobalElements[i];
@@ -120,7 +120,7 @@ void invertM(const Epetra_Map& PixMap, DataManager* dm, Epetra_MultiVector& M, E
         }
         
         blockM->Apply(*PixelArray, *WeightedPixelArray);
-        if ((PixMyGlobalElements[i] % 1000000) == 0) {
+        if ((PixMyGlobalElements[i] % 100000) == 0) {
             cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *PixelArray << endl;
             cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
             cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *WeightedPixelArray << endl;

@@ -186,7 +186,7 @@ if (hasI) {
     for (int j=0; j<2; ++j) {
         for (int k=j; k<2; ++k) {
             log(MyPID,format("M %d %d") % j % k);
-            tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
+            tempvec.Multiply(1., *(yqu(j+1)), *(yqu(k+1)), 0.);
             i_M = dm->getIndexM(j, k);
             P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
             log(MyPID, format("Setting M %d") % i_M );
@@ -216,7 +216,6 @@ Epetra_Vector binmap(PixMap);
 invertM(PixMap, dm, M, rcond, summap);
 log(MyPID, format("%f") % time.ElapsedTime());
 
-
 WriteH5Vec(&rcond, "rcondmap", dm->outputFolder);
 
 log(MyPID,"Writing BINMAP");
@@ -226,15 +225,15 @@ for (int j=0; j<dm->NSTOKES; ++j) {
 }
 log(MyPID, format("%f") % time.ElapsedTime());
 
-//log(MyPID,"Writing M");
-//time.ResetStartTime();
-//for (int j=0; j<dm->NSTOKES; ++j) {
-//    for (int k=j; k<dm->NSTOKES; ++k) {
-//        i_M = dm->getIndexM(j, k);
-//        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
-//    }
-//}
-//log(MyPID, format("%f") % time.ElapsedTime());
+log(MyPID,"Writing M");
+time.ResetStartTime();
+for (int j=0; j<dm->NSTOKES; ++j) {
+    for (int k=j; k<dm->NSTOKES; ++k) {
+        i_M = dm->getIndexM(j, k);
+        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
+    }
+}
+log(MyPID, format("%f") % time.ElapsedTime());
 
 #ifdef HAVE_MPI
   MPI_Finalize();

@@ -57,7 +57,7 @@ int DataManager::getData(string what, long iStart, int nElements, double* data){
     bool reloop = true;
 
     fileIndex = int(lower_bound(fileLengths.begin(), fileLengths.end(), iStart) - fileLengths.begin());
-    //cout << "Fileindex:" << fileIndex << endl;
+    cout << "Fileindex:" << fileIndex << endl;
 
     if (fileIndex == 0) {
         fileStart = 0;
@@ -75,8 +75,10 @@ int DataManager::getData(string what, long iStart, int nElements, double* data){
         }
 
         firstelem = iStart - fileStart;
-        //cout << "fileStart:" << fileStart << "  fileLengths[fileIndex] " <<  fileLengths[fileIndex] << endl;
-        //cout << "firstelem:" << firstelem << " len " << firstFilenElements << endl;
+
+        cout << "fileName:" << fileNames[fileIndex] << endl;
+        cout << "fileStart:" << fileStart << "  fileLengths[fileIndex] " <<  fileLengths[fileIndex] << endl;
+        cout << "firstelem:" << firstelem << " len " << firstFilenElements << endl;
         if (strcmp(what.c_str(), "data") == 0) {
             read_data(fileNames[fileIndex].c_str(), "DATA", 2, firstelem, long(firstFilenElements), d);
         } else if  (strcmp(what.c_str(), "pointing") == 0) {

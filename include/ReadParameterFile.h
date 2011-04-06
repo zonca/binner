@@ -13,12 +13,13 @@ void readParameterFile(string parameterFilename, DataManager *& dm) {
 
     Teuchos::RCP<Teuchos::ParameterList> Config=Teuchos::getParametersFromXmlFile(parameterFilename);
 
-    //Teuchos::Array<string> channels = Teuchos::getParameter< Teuchos::Array<string> >(Config,"Channels");
+    //Teuchos::Array<string> channels = Teuchos::getParameter< Teuchos::Array<string> >(*Config,"Channels");
     //Teuchos::Array<string> channels = Config->get<Teuchos::Array<string> >("Channels");
     //Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1q");
     //channels = Config->get("Channels",channels);
 
-    Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1q");
+    //Teuchos::Array<string> channels =  Teuchos::tuple<string>("ch1q","ch1u");
+    Teuchos::Array<string> channels =  Teuchos::tuple<string>("data");
 
     int NSIDE = Config->get("Nside", 1024);
     string pointingPath = str( format(Config->get("PointingPath", "")) );

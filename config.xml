@@ -1,10 +1,10 @@
 <ParameterList>
   <Parameter name="Nside" type="int" value="256"/>
-  <Parameter name="Channels" type="Array string" value="{ch1q, ch1u}"/>
+  <Parameter name="Channels" type="Array string" value="{ch1q,ch1u}"/>
   <Parameter name="FirstOD" type="int" value="1"/>
-  <Parameter name="LastOD" type="int" value="2"/>
-  <Parameter name="DataPath" type="string" value="data/bmachine"/>
-  <Parameter name="PointingPath" type="string" value="data/bmachine/"/>
+  <Parameter name="LastOD" type="int" value="1"/>
+  <Parameter name="DataPath" type="string" value="data/bmachine_sim"/>
+  <Parameter name="PointingPath" type="string" value="data/bmachine"/>
   <Parameter name="OutputFolder" type="string" value="out"/>
 </ParameterList>
 
