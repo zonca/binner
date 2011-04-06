@@ -34,6 +34,7 @@ class DataManager
         };
 
         int adjustDistribution(int MinMyGID, int NumMyElements);
+        int numLocalBaselines(int MinMyGID, int NumMyElements);
         int NSIDE;
         bool DEBUG;
         int NSTOKES, BaselineLength;

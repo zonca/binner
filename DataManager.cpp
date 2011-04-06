@@ -47,6 +47,28 @@ DataManager::DataManager(int firstOd,int  lastOd,  Teuchos::Array<string> channe
 // /DEBUG
 };
 
+int DataManager::numLocalBaselines(int iStart, int nElements, int & NumLocalBaselines, vector<int> & BaselineLengths) {
+    int FirstDatasetIndex = int(upper_bound(fileLengths.begin(), fileLengths.end(), iStart) - fileLengths.begin());
+    int LastDatasetIndex = int(upper_bound(fileLengths.begin(), fileLengths.end(), iStart+nElements) - fileLengths.begin());
+    int DatasetLength;
+    int NumLocalBaselines = 0.;
+    for (int i=FirstDatasetIndex; i<=LastDatasetIndex; i++) {
+        if (i == FirstDatasetIndex) {
+            DatasetLength = fileLengths[i] - iStart;
+        } else {
+            DatasetLength = fileLengths[i] - fileLengths[i-1];
+        }
+        if (i == LastDatasetIndex) {
+            DatasetLength -= fileLengths[i] - (iStart + nElements);
+        }
+        NumLocalBaselines += ceil((float)(DatasetLength)/BaselineLength);
+        for (int j; j<NumLocalBaselines-1; j++) {
+            BaselineLengths.push_back(BaselineLength);
+        }
+        BaselineLengths.push_back(NumLocalBaselines * BaselineLength - DatasetLength);
+    }
+};
+
 int DataManager::adjustDistribution(int iStart, int nElements) {
 
     int FirstDatasetIndex = int(upper_bound(fileLengths.begin(), fileLengths.end(), iStart) - fileLengths.begin());
