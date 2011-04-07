@@ -25,6 +25,8 @@
 #include "CreateMatrices.h"
 #include "ReadParameterFile.h"
 
+#include "AztecOO.h"
+
 #include "H5Cpp.h"
 
 using namespace std;
@@ -47,7 +49,7 @@ My_CLP.setOption("p", &parameterFilename, "Parameter filename");
 My_CLP.parse( argc, argv );
 
 int MyPID = Comm.MyPID();
-int i_M, a, s_index;
+int i_M, a, s_index, err;
 double ScalarMultiplier = 1.;
 
 int MAX_SAMPLES_PER_PROC = 5e6;
@@ -306,16 +308,83 @@ Z.ReplaceDiagonalValues(diagZ);
 //cout << Z << endl;
 
 //Create F
-int NumLocalBaselines;
+int NumLocalBaselines=0;
 vector<int> BaselineLengths;
-dm->numLocalBaselines(Map.MinMyGID(), Map.NumMyElements(), NumLocalBaselines, BaselineLengths)
+dm->numLocalBaselines(Map.MinMyGID(), Map.NumMyElements(), NumLocalBaselines, BaselineLengths);
 Epetra_Map BaselinesMap(-1,NumLocalBaselines, 0, Comm);
 
-cout << BaselinesMap << endl;
-//Epetra_CrsMatrix F(Copy, Map,1);
-//F.FillComplete(BaselinesMap, Map);
+Epetra_CrsMatrix F(Copy, Map,1);
+int * MyGlobalElements = Map.MyGlobalElements();
+int * MyBaselineGlobalElements = BaselinesMap.MyGlobalElements();
+double one = 1.0;
+int k=0;
+int baselinenum;
+for(unsigned int i=0 ; i<BaselinesMap.NumMyElements(); ++i ) { //loop on local baselines
+    baselinenum = MyBaselineGlobalElements[i];
+    //cout <<BaselineLengths[i]  << "   " << baselinenum << endl;
+    for (unsigned int j=0; j<BaselineLengths[i]; j++) {
+        //cout << "k " << k << "   " << baselinenum << "   " << MyGlobalElements[k] << endl;
+        F.InsertGlobalValues(MyGlobalElements[k], 1, &one, &baselinenum);
+        k++;
+    }
+}
+F.FillComplete(BaselinesMap, Map);
+
+log(Comm.MyPID(),"----------------Creating FZT n_base * time");
 
 Epetra_CrsMatrix FZT(Copy, Map,10);
+
+log(Comm.MyPID(),"M-M");
+err = EpetraExt::MatrixMatrix::Multiply(Z, true, F, false, FZT); 
+log(Comm.MyPID(),"M-M END");
+if (err != 0) {
+    cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
+    return(err);
+}
+
+log(Comm.MyPID(),"----------------Creating RHS n_base");
+
+Epetra_Vector RHS(BaselinesMap);
+FZT.Multiply(true,*(yqu(0)),RHS);
+
+log(Comm.MyPID(),"----------------Creating D n_base x n_base");
+
+Epetra_CrsMatrix D(Copy, BaselinesMap, 30);
+
+log(Comm.MyPID(),"M-M");
+err = EpetraExt::MatrixMatrix::Multiply(FZT, true, F, false, D); 
+log(Comm.MyPID(),"M-M END");
+if (err != 0) {
+    cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
+    return(err);
+}
+
+
+//// Solving
+Epetra_Vector baselines(BaselinesMap);
+
+// Create Linear Problem
+Epetra_LinearProblem problem(&D, &baselines, &RHS);
+// Create AztecOO instance
+AztecOO solver(problem);
+
+int options[AZ_OPTIONS_SIZE];
+double params[AZ_PARAMS_SIZE];
+AZ_defaults(options, params);
+solver.SetAllAztecOptions( options );
+solver.Iterate(100, 1.0E-10);
+
+cout << "Solver performed " << solver.NumIters() << " iterations." << endl
+   << "Norm of true residual = " << solver.TrueResidual() << endl;
+
+Epetra_Vector destripedTOD(Map);
+F.Multiply(false,baselines,destripedTOD);
+
+for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
+    destripedTOD[i] = yqu[0][i] - destripedTOD[i];
+}
+
+cout << baselines << endl;
 
 #ifdef HAVE_MPI
   MPI_Finalize();

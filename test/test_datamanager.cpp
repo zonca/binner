@@ -94,4 +94,26 @@ BOOST_AUTO_TEST_CASE( test_adjustdistribution_across )
     BOOST_CHECK_EQUAL(dm.adjustDistribution(26,8), 2+4);
     BOOST_CHECK_EQUAL(dm.adjustDistribution(26,9), 2+8);
 }
+
+BOOST_AUTO_TEST_CASE( test_numLocalBaselines )
+{
+    DataManager dm(1, 2, channels, "data/test_qu","data/test_qu");
+    dm.BaselineLength = 4;
+    int NumLocalBaselines;
+    vector<int> BaselineLengths;
+    //dm.numLocalBaselines(0, 8, NumLocalBaselines, BaselineLengths);
+    //BOOST_CHECK_EQUAL(NumLocalBaselines, 2);
+    //BOOST_CHECK_EQUAL(BaselineLengths[0], 4);
+    //BOOST_CHECK_EQUAL(BaselineLengths[1], 4);
+    dm.numLocalBaselines(24, 24, NumLocalBaselines, BaselineLengths);
+    BOOST_CHECK_EQUAL(NumLocalBaselines, 7);
+    BOOST_CHECK_EQUAL(BaselineLengths[0], 4);
+    BOOST_CHECK_EQUAL(BaselineLengths[1], 2);
+    BOOST_CHECK_EQUAL(BaselineLengths[2], 4);
+    BOOST_CHECK_EQUAL(BaselineLengths[3], 4);
+    BOOST_CHECK_EQUAL(BaselineLengths[4], 4);
+    BOOST_CHECK_EQUAL(BaselineLengths[5], 4);
+    BOOST_CHECK_EQUAL(BaselineLengths[6], 2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

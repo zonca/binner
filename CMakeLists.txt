@@ -33,7 +33,7 @@ elseif($ENV{NERSC_HOST} STREQUAL hopper2)
 
     target_link_libraries(binner DataManager epetra teuchos hdf5 hdf5_cpp teuchos)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
-    target_link_libraries(dst DataManager read_fits_lib trilinos_epetra trilinos_epetraext hdf5 hdf5_cpp trilinos_teuchos cfitsio)
+    target_link_libraries(dst DataManager read_fits_lib trilinos_epetra trilinos_epetraext hdf5 hdf5_cpp trilinos_teuchos cfitsio trilinos_aztecoo)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 #set(CMAKE_BUILD_TYPE Release)

@@ -49,9 +49,12 @@ DataManager::DataManager(int firstOd,int  lastOd,  Teuchos::Array<string> channe
 
 int DataManager::numLocalBaselines(int iStart, int nElements, int & NumLocalBaselines, vector<int> & BaselineLengths) {
     int FirstDatasetIndex = int(upper_bound(fileLengths.begin(), fileLengths.end(), iStart) - fileLengths.begin());
-    int LastDatasetIndex = int(upper_bound(fileLengths.begin(), fileLengths.end(), iStart+nElements) - fileLengths.begin());
+    int LastDatasetIndex = int(lower_bound(fileLengths.begin(), fileLengths.end(), iStart+nElements) - fileLengths.begin());
+    cout << FirstDatasetIndex << endl;
+    cout << LastDatasetIndex << endl;
     int DatasetLength;
-    int NumLocalBaselines = 0.;
+    int DatasetBaselines;
+    NumLocalBaselines = 0;
     for (int i=FirstDatasetIndex; i<=LastDatasetIndex; i++) {
         if (i == FirstDatasetIndex) {
             DatasetLength = fileLengths[i] - iStart;
@@ -61,11 +64,16 @@ int DataManager::numLocalBaselines(int iStart, int nElements, int & NumLocalBase
         if (i == LastDatasetIndex) {
             DatasetLength -= fileLengths[i] - (iStart + nElements);
         }
-        NumLocalBaselines += ceil((float)(DatasetLength)/BaselineLength);
-        for (int j; j<NumLocalBaselines-1; j++) {
+        DatasetBaselines = floor((float)(DatasetLength)/BaselineLength);
+        //cout << i << " " << fileLengths[i] << " " << iStart  << " " << DatasetBaselines << endl;
+        for (int j=0; j<DatasetBaselines; j++) {
             BaselineLengths.push_back(BaselineLength);
         }
-        BaselineLengths.push_back(NumLocalBaselines * BaselineLength - DatasetLength);
+        if (DatasetLength - DatasetBaselines * BaselineLength > 0) {
+            BaselineLengths.push_back(DatasetLength - DatasetBaselines * BaselineLength);
+            DatasetBaselines++;
+        }
+        NumLocalBaselines += DatasetBaselines;
     }
 };
 
