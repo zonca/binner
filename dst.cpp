@@ -384,7 +384,21 @@ for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
     destripedTOD[i] = yqu[0][i] - destripedTOD[i];
 }
 
-cout << baselines << endl;
+//cout << destripedTOD << endl;
+
+log(MyPID,"Writing DESTRIPED");
+time.ResetStartTime();
+for (int j=0; j<dm->NSTOKES; ++j) {
+    tempvec.Multiply(1., *(yqu(1)), *(M_time(j)), 0.);
+    tempvec.Multiply(1., *(yqu(2)), *(M_time(j+1)), 1.);
+    for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
+        tempvec[i] *= destripedTOD[i];
+    }
+    P->Multiply(true, tempvec, tempmap);
+    cout << tempmap << endl;
+    WriteH5Vec(&tempmap, "destripedmap_" + LABEL[j], dm->outputFolder);
+}
+log(MyPID, format("%f") % time.ElapsedTime());
 
 #ifdef HAVE_MPI
   MPI_Finalize();
