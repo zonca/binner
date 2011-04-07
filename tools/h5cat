@@ -13,7 +13,7 @@ STOKES = ['I','Q','U']
 #for i in range(1,6+1):
 #    STOKES.append('S%d' % i)
 
-for map in ['binmap', 'summap']:
+for map in ['binmap', 'summap', 'destripedmap']:
     for S in STOKES:
         types.append('_'.join([map, S]))
 

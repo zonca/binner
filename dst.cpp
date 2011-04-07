@@ -242,12 +242,13 @@ P->Multiply(false, M, M_time);
 log(MyPID, format("%f") % time.ElapsedTime());
 
 log(MyPID,"Z");
-Epetra_CrsMatrix Z(Copy, Map, 0);
+Epetra_CrsMatrix Z(Copy, Map, 70);
 EpetraExt::MatrixMatrix::Multiply(*P, false, *P, true, Z);
-Epetra_CrsMatrix Z2(Z);
 log(MyPID, format("%f") % time.ElapsedTime());
+Epetra_CrsMatrix Z2(Z);
 
 log(MyPID,"Z weighting");
+time.ResetStartTime();
 //if (hasI) {
 //    cout << "NOTIMPLEMENTED" << endl;
 //} else {
@@ -308,6 +309,8 @@ Z.ReplaceDiagonalValues(diagZ);
 //cout << Z << endl;
 
 //Create F
+log(Comm.MyPID(),"----------------Creating F n_base * time");
+time.ResetStartTime();
 int NumLocalBaselines=0;
 vector<int> BaselineLengths;
 dm->numLocalBaselines(Map.MinMyGID(), Map.NumMyElements(), NumLocalBaselines, BaselineLengths);
@@ -330,8 +333,9 @@ for(unsigned int i=0 ; i<BaselinesMap.NumMyElements(); ++i ) { //loop on local b
 }
 F.FillComplete(BaselinesMap, Map);
 
+log(MyPID, format("%f") % time.ElapsedTime());
 log(Comm.MyPID(),"----------------Creating FZT n_base * time");
-
+time.ResetStartTime();
 Epetra_CrsMatrix FZT(Copy, Map,10);
 
 log(Comm.MyPID(),"M-M");
@@ -342,13 +346,17 @@ if (err != 0) {
     return(err);
 }
 
+log(MyPID, format("%f") % time.ElapsedTime());
 log(Comm.MyPID(),"----------------Creating RHS n_base");
 
+time.ResetStartTime();
 Epetra_Vector RHS(BaselinesMap);
 FZT.Multiply(true,*(yqu(0)),RHS);
 
+log(MyPID, format("%f") % time.ElapsedTime());
 log(Comm.MyPID(),"----------------Creating D n_base x n_base");
 
+time.ResetStartTime();
 Epetra_CrsMatrix D(Copy, BaselinesMap, 30);
 
 log(Comm.MyPID(),"M-M");
@@ -359,10 +367,12 @@ if (err != 0) {
     return(err);
 }
 
+log(MyPID, format("%f") % time.ElapsedTime());
 
 //// Solving
 Epetra_Vector baselines(BaselinesMap);
 
+time.ResetStartTime();
 // Create Linear Problem
 Epetra_LinearProblem problem(&D, &baselines, &RHS);
 // Create AztecOO instance
@@ -377,6 +387,8 @@ solver.Iterate(100, 1.0E-10);
 cout << "Solver performed " << solver.NumIters() << " iterations." << endl
    << "Norm of true residual = " << solver.TrueResidual() << endl;
 
+log(MyPID, format("%f") % time.ElapsedTime());
+
 Epetra_Vector destripedTOD(Map);
 F.Multiply(false,baselines,destripedTOD);
 
@@ -388,6 +400,7 @@ for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
 
 log(MyPID,"Writing DESTRIPED");
 time.ResetStartTime();
+log(MyPID, format("%f") % time.ElapsedTime());
 for (int j=0; j<dm->NSTOKES; ++j) {
     tempvec.Multiply(1., *(yqu(1)), *(M_time(j)), 0.);
     tempvec.Multiply(1., *(yqu(2)), *(M_time(j+1)), 1.);
@@ -395,10 +408,9 @@ for (int j=0; j<dm->NSTOKES; ++j) {
         tempvec[i] *= destripedTOD[i];
     }
     P->Multiply(true, tempvec, tempmap);
-    cout << tempmap << endl;
+    //cout << tempmap << endl;
     WriteH5Vec(&tempmap, "destripedmap_" + LABEL[j], dm->outputFolder);
 }
-log(MyPID, format("%f") % time.ElapsedTime());
 
 #ifdef HAVE_MPI
   MPI_Finalize();
