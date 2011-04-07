@@ -22,6 +22,7 @@ endif($ENV{NERSC_HOST} STREQUAL carver)
 add_library(H5PlanckDataManager H5PlanckDataManager.cpp)
 
 add_executable(binner binner.cpp)
+add_executable(abinner abinner.cpp)
 #add_executable(testFEVbr testFEVbr.cpp)
 
 if ($ENV{NERSC_HOST} STREQUAL carver)
@@ -31,11 +32,12 @@ elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 
     target_link_libraries(binner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
+    target_link_libraries(abinner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(binner H5PlanckDataManager trilinos_epetra hdf5 hdf5_cpp)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
-#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Release)
 
 # TEST
 ENABLE_TESTING()

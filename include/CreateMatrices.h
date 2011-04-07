@@ -114,20 +114,22 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
         RCondIndices[0] = PixMyGlobalElements[i];
         rcond.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
 
-        //apply to summap
-        for (int j=0; j<dm->NSTOKES; ++j) {
-            (*PixelArray)(j, 0) = summap[j][i];
-        }
-        
-        blockM->Apply(*PixelArray, *WeightedPixelArray);
-        if ((PixMyGlobalElements[i] % 1000000) == 0) {
-            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *PixelArray << endl;
-            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
-            cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *WeightedPixelArray << endl;
-        }
+        for (int ch_number=0; ch_number<dm->getChannels().size(); ch_number++) {
+            //apply to summap
+            for (int j=0; j<dm->NSTOKES; ++j) {
+                (*PixelArray)(j, 0) = summap[3*(ch_number/2) + j][i];
+            }
+            
+            blockM->Apply(*PixelArray, *WeightedPixelArray);
+            if ((PixMyGlobalElements[i] % 1000000) == 0) {
+                cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *PixelArray << endl;
+                cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *blockM << endl;
+                cout << "PID:" << MyPID << " localPIX:" << i << " globalPIX:" << PixMyGlobalElements[i] << *WeightedPixelArray << endl;
+            }
 
-        for (int j=0; j<dm->NSTOKES; ++j) {
-            summap[j][i] = (*WeightedPixelArray)(j, 0);
+            for (int j=0; j<dm->NSTOKES; ++j) {
+                summap[3*(ch_number/2) + j][i] = (*WeightedPixelArray)(j, 0);
+            }
         }
         
     }
