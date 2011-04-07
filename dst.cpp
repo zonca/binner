@@ -316,7 +316,7 @@ vector<int> BaselineLengths;
 dm->numLocalBaselines(Map.MinMyGID(), Map.NumMyElements(), NumLocalBaselines, BaselineLengths);
 Epetra_Map BaselinesMap(-1,NumLocalBaselines, 0, Comm);
 
-Epetra_CrsMatrix F(Copy, Map,1);
+Epetra_CrsMatrix F(Copy, Map,1, true);
 int * MyGlobalElements = Map.MyGlobalElements();
 int * MyBaselineGlobalElements = BaselinesMap.MyGlobalElements();
 double one = 1.0;
