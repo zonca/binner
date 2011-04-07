@@ -1,0 +1,11 @@
+<ParameterList>
+  <Parameter name="Nside" type="int" value="1"/>
+  <Parameter name="Channels" type="Array string" value="{data}"/>
+  <Parameter name="FirstOD" type="int" value="1"/>
+  <Parameter name="LastOD" type="int" value="2"/>
+  <Parameter name="BaselineLength" type="int" value="4"/>
+  <Parameter name="DataPath" type="string" value="data/test_qu"/>
+  <Parameter name="PointingPath" type="string" value="data/test_qu"/>
+  <Parameter name="OutputFolder" type="string" value="out"/>
+</ParameterList>
+
