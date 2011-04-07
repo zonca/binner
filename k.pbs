@@ -1,0 +1,18 @@
+#PBS -S /bin/bash
+#PBS -A TG-ASC090080
+#PBS -l size=12
+#PBS -l walltime=02:30:00
+#PBS -N dst
+#PBS -m abe
+#PBS -o dst.oe
+#PBS -j oe
+#PBS -q small
+
+module load trilinos
+module load boost
+module load hdf5
+
+ulimit -s unlimited
+
+cd $PBS_O_WORKDIR
+time aprun -n 12 ./dst --p='config.xml' &> log.txt

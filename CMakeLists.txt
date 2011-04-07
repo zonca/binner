@@ -17,6 +17,10 @@ elseif ($ENV{NERSC_HOST} STREQUAL canopus)
 
     include_directories("../include" "./include" "/usr/include/trilinos/" "/usr/include/openmpi")
 
+elseif ($ENV{NERSC_HOST} STREQUAL kraken)
+    include_directories("../include" "./include" "/sw/xt/boost/1.44.0/cnl2.2_gnu4.4.4/include" "/sw/xt/trilinos/10.4.0/cnl2.2_gnu4.4.4/include" "/opt/cray/hdf5/1.8.4.1/hdf5-gnu/include/")
+    link_directories("/lustre/scratch/zonca/lib" "/sw/xt/trilinos/10.4.0/cnl2.2_gnu4.4.4/lib" "/sw/xt/boost/1.44.0/cnl2.2_gnu4.4.4/lib")
+
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
 add_library(DataManager DataManager.cpp)
@@ -34,9 +38,11 @@ elseif($ENV{NERSC_HOST} STREQUAL hopper2)
     target_link_libraries(binner DataManager epetra teuchos hdf5 hdf5_cpp teuchos)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(dst DataManager read_fits_lib trilinos_epetra trilinos_epetraext hdf5 hdf5_cpp trilinos_teuchos cfitsio trilinos_aztecoo)
+elseif($ENV{NERSC_HOST} STREQUAL kraken)
+    target_link_libraries(dst DataManager read_fits_lib epetra epetraext hdf5 hdf5_cpp teuchos cfitsio aztecoo)
 endif($ENV{NERSC_HOST} STREQUAL carver)
 
-#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Release)
 
 # TEST
 ENABLE_TESTING()
