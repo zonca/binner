@@ -11,4 +11,4 @@
 ulimit -s unlimited
 
 cd $PBS_O_WORKDIR
-time aprun -n 240 ./abinner --p="config30.xml" &> /scratch/scratchdirs/zonca/out/30/log.txt
+aprun -n 240 ./abinner --p="config30.xml" &> /scratch/scratchdirs/zonca/out/30/log.txt

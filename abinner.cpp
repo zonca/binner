@@ -124,7 +124,9 @@ BOOST_FOREACH( string channel, dm->getChannels())
             time.ResetStartTime();
             //dm->getData(channel, Map.MinMyGID() + offset,Map.NumMyElements(),yqu_view[0]);
             a = 2 * (ch_number % 2) - 1; // -1 for M, +1 for S
-            yqu(0)->PutScalar(a);
+            for (int i=0; i<NumMyElements; i++) {
+                yqu[0][i] = a * (1 + yqu[1][i] + yqu[2][i]); // rescanning a +1/-1 map
+            }
             log(MyPID, format("Read data timer %f") % time.ElapsedTime());
 
             log(MyPID,format("Offset [mil]: %d") % (offset/1.e6));
