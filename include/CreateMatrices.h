@@ -114,7 +114,7 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
         RCondIndices[0] = PixMyGlobalElements[i];
         rcond.ReplaceGlobalValues(1, 0, RCondValues, RCondIndices);
 
-        for (int ch_number=0; ch_number<dm->getChannels().size(); ch_number++) {
+        for (int ch_number=0; ch_number<dm->getChannels().size(); ch_number=ch_number+2) {
             //apply to summap
             for (int j=0; j<dm->NSTOKES; ++j) {
                 (*PixelArray)(j, 0) = summap[3*(ch_number/2) + j][i];
