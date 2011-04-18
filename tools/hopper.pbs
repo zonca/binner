@@ -1,7 +1,7 @@
 #PBS -S /bin/bash
 #PBS -l mppwidth=240 
 #PBS -l walltime=00:30:00
-#PBS -N binner30
+#PBS -N binner
 #PBS -q debug
 #PBS -m abe
 #PBS -o binner.oe
@@ -11,4 +11,4 @@
 ulimit -s unlimited
 
 cd $PBS_O_WORKDIR
-aprun -n 240 ./abinner --p="config30.xml" &> /scratch/scratchdirs/zonca/out/30/log.txt
+aprun -n 240 ./binner --p="config30.xml" &> /scratch2/scratchdirs/zonca/out/30/log.txt
