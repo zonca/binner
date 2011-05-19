@@ -245,6 +245,7 @@ log(MyPID,"Z");
 Epetra_CrsMatrix Z(Copy, Map, 70);
 EpetraExt::MatrixMatrix::Multiply(*P, false, *P, true, Z);
 log(MyPID, format("%f") % time.ElapsedTime());
+log(MyPID,"Z2");
 Epetra_CrsMatrix Z2(Z);
 
 log(MyPID,"Z weighting");
