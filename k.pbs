@@ -1,7 +1,7 @@
 #PBS -S /bin/bash
 #PBS -A TG-ASC090080
 #PBS -l size=48
-#PBS -l walltime=00:30:00
+#PBS -l walltime=00:40:00
 #PBS -N dst
 #PBS -m abe
 #PBS -o dst.oe

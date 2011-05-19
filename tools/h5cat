@@ -4,7 +4,7 @@ import sys
 import glob
 import h5py
 import numpy as np
-import healpy
+#import healpy
 
 types = ['hitmap', 'rcondmap']
 
@@ -26,7 +26,8 @@ for type in types:
     s=sorted(glob.glob(sys.argv[1] + '/%s_*.h5' % type))
     if s:
         cat = np.concatenate([h5py.File(f)['Vector'].value for f in s])
-        healpy.write_map(sys.argv[1] + '/' + type + ".fits", cat[:-1],nest=False)
+        np.save(sys.argv[1] + '/' + type + ".pkl", cat[:-1])
+        #healpy.write_map(sys.argv[1] + '/' + type + ".fits", cat[:-1],nest=False)
     else:
         print('Nothing to do')
 
