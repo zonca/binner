@@ -20,6 +20,7 @@
 #include "Epetra_Time.h"
 #include <EpetraExt_MatrixMatrix.h>
 #include "Teuchos_CommandLineProcessor.hpp"
+#include "Epetra_Operator.h"
 
 #include "DataManager.h"
 #include "CreateMatrices.h"
@@ -77,7 +78,7 @@ Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
 log(MyPID,"POINTING MATRIX");
 Epetra_MultiVector summap(PixMap, dm->NSTOKES);
 int Msize =  dm->NSTOKES * (dm->NSTOKES + 1) / 2;
-Epetra_MultiVector M(PixMap, Msize);
+Epetra_MultiVector * M = new Epetra_MultiVector(PixMap, Msize);
 Epetra_Vector tempmap(PixMap);
 Epetra_Vector * hitmap = new Epetra_Vector(PixMap);
 Epetra_CrsMatrix * P;
@@ -182,7 +183,7 @@ if (hasI) {
             P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
             i_M = dm->getIndexM(j, k);
             log(MyPID, format("Setting M %d") % i_M );
-            M(i_M)->Update(weight, tempmap, 1.);
+            (*M)(i_M)->Update(weight, tempmap, 1.);
         }
     } // M loop IQU
 } else {
@@ -193,7 +194,7 @@ if (hasI) {
             i_M = dm->getIndexM(j, k);
             P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
             log(MyPID, format("Setting M %d") % i_M );
-            M(i_M)->Update(weight, tempmap, 1.);
+            (*M)(i_M)->Update(weight, tempmap, 1.);
         }
     } // M loop IQU
 }
@@ -213,7 +214,7 @@ time.ResetStartTime();
 Epetra_Vector rcond(PixMap);
 
 Epetra_Vector binmap(PixMap);
-invertM(PixMap, dm, M, rcond, summap);
+invertM(PixMap, dm, *M, rcond, summap);
 log(MyPID, format("%f") % time.ElapsedTime());
 
 WriteH5Vec(&rcond, "rcondmap", dm->outputFolder);
@@ -230,7 +231,7 @@ time.ResetStartTime();
 for (int j=0; j<dm->NSTOKES; ++j) {
     for (int k=j; k<dm->NSTOKES; ++k) {
         i_M = dm->getIndexM(j, k);
-        WriteH5Vec(M(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
+        WriteH5Vec((*M)(i_M), "M_" + LABEL[j] + "_" + LABEL[k], dm->outputFolder);
     }
 }
 log(MyPID, format("%f") % time.ElapsedTime());
@@ -238,7 +239,7 @@ log(MyPID, format("%f") % time.ElapsedTime());
 //Destriping
 log(MyPID,"M_time");
 Epetra_MultiVector M_time(Map, Msize);
-P->Multiply(false, M, M_time);
+P->Multiply(false, *M, M_time);
 log(MyPID, format("%f") % time.ElapsedTime());
 
 log(MyPID,"Z");
@@ -317,7 +318,7 @@ vector<int> BaselineLengths;
 dm->numLocalBaselines(Map.MinMyGID(), Map.NumMyElements(), NumLocalBaselines, BaselineLengths);
 Epetra_Map BaselinesMap(-1,NumLocalBaselines, 0, Comm);
 
-Epetra_CrsMatrix F(Copy, Map,1, true);
+Epetra_CrsMatrix * F = new Epetra_CrsMatrix(Copy, Map,1, true);
 int * MyGlobalElements = Map.MyGlobalElements();
 int * MyBaselineGlobalElements = BaselinesMap.MyGlobalElements();
 double one = 1.0;
@@ -328,11 +329,11 @@ for(unsigned int i=0 ; i<BaselinesMap.NumMyElements(); ++i ) { //loop on local b
     //cout <<BaselineLengths[i]  << "   " << baselinenum << endl;
     for (unsigned int j=0; j<BaselineLengths[i]; j++) {
         //cout << "k " << k << "   " << baselinenum << "   " << MyGlobalElements[k] << endl;
-        F.InsertGlobalValues(MyGlobalElements[k], 1, &one, &baselinenum);
+        F->InsertGlobalValues(MyGlobalElements[k], 1, &one, &baselinenum);
         k++;
     }
 }
-F.FillComplete(BaselinesMap, Map);
+F->FillComplete(BaselinesMap, Map);
 
 log(MyPID, format("%f") % time.ElapsedTime());
 log(Comm.MyPID(),"----------------Creating FZT n_base * time");
@@ -340,7 +341,7 @@ time.ResetStartTime();
 Epetra_CrsMatrix FZT(Copy, Map,10);
 
 log(Comm.MyPID(),"M-M");
-err = EpetraExt::MatrixMatrix::Multiply(Z, true, F, false, FZT); 
+err = EpetraExt::MatrixMatrix::Multiply(Z, true, *F, false, FZT); 
 log(Comm.MyPID(),"M-M END");
 if (err != 0) {
     cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
@@ -361,7 +362,7 @@ time.ResetStartTime();
 Epetra_CrsMatrix D(Copy, BaselinesMap, 30);
 
 log(Comm.MyPID(),"M-M");
-err = EpetraExt::MatrixMatrix::Multiply(FZT, true, F, false, D); 
+err = EpetraExt::MatrixMatrix::Multiply(FZT, true, *F, false, D); 
 log(Comm.MyPID(),"M-M END");
 if (err != 0) {
     cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
@@ -372,6 +373,9 @@ log(MyPID, format("%f") % time.ElapsedTime());
 
 //// Solving
 Epetra_Vector baselines(BaselinesMap);
+
+//Operator
+Epetra_Operator * DOperator = new DestripingOperator(P, yqu, M, F, BaselinesMap,&tempvec, &tempvec2, &tempmap);
 
 time.ResetStartTime();
 // Create Linear Problem
@@ -391,7 +395,7 @@ cout << "Solver performed " << solver.NumIters() << " iterations." << endl
 log(MyPID, format("%f") % time.ElapsedTime());
 
 Epetra_Vector destripedTOD(Map);
-F.Multiply(false,baselines,destripedTOD);
+F->Multiply(false,baselines,destripedTOD);
 
 for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
     destripedTOD[i] = (*yqu)[0][i] - destripedTOD[i];

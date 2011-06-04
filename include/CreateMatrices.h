@@ -28,12 +28,77 @@
 
 using namespace std;
 
-//class DestripingOperator : public Epetra_Operator
-//{
-//public:
-//    DestripingOperator(const Epetra_CrsMatrix * P)
-//    {} 
-//}
+class DestripingOperator : public Epetra_Operator
+{
+public:
+    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap):
+        P(P), yqu(yqu), M(M), F(F), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap)
+    {} 
+
+    int Apply( const Epetra_MultiVector & X,
+	     Epetra_MultiVector & Y ) const
+  {
+      return true;
+  }
+
+  // other function
+  int SetUseTranspose( bool UseTranspose) 
+  {
+    return(-1); // not implemented
+  }
+
+  int ApplyInverse( const Epetra_MultiVector & X,
+		    Epetra_MultiVector & Y ) const
+  {
+    return(-1); // not implemented
+  }
+
+  double NormInf() const
+  {
+    return(-1);
+  }
+
+  const char * Label () const
+  {
+    return("DestripingOperator");
+  }
+
+  bool UseTranspose() const
+  {
+    return(false);
+  }
+
+  bool HasNormInf () const
+  {
+    return(true);
+  }
+  
+  
+  const Epetra_Comm & Comm() const
+  {
+    return(Map_.Comm());
+  }
+
+  const Epetra_Map & OperatorDomainMap() const
+  {
+    return(Map_);
+  }
+  
+  const Epetra_Map & OperatorRangeMap() const
+  {
+    return(Map_);
+  }
+
+private:
+    const Epetra_CrsMatrix * P; 
+    const Epetra_MultiVector * yqu;
+    const Epetra_MultiVector * M;
+    const Epetra_CrsMatrix * F;
+    Epetra_Map Map_;
+    Epetra_Vector * tempvec;
+    Epetra_Vector * tempvec2;
+    Epetra_Vector * tempmap;
+};
 
 int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
 
