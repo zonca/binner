@@ -31,14 +31,40 @@ using namespace std;
 class DestripingOperator : public Epetra_Operator
 {
 public:
-    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap):
-        P(P), yqu(yqu), M(M), F(F), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap)
+    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, const DataManager * dm, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
+        P(P), yqu(yqu), M(M), F(F), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
     {} 
 
     int Apply( const Epetra_MultiVector & X,
 	     Epetra_MultiVector & Y ) const
   {
-      return true;
+    //Fa
+    F->Multiply(false,X,*tempvec); //baselines TOD
+
+    // PFa
+    int qu_i=0;
+    for (int i=1; i<3; ++i) { // Q=1 U=2
+        tempvec->Multiply(1., *tempvec, *((*yqu)(i)), 0.);
+        P->Multiply1(true,*tempvec,*tempmap); //SUMMAP = Pt y
+        qu_i = i-1;
+        (*summap)(qu_i)->Update(1., *tempmap, 1.);
+    }
+    //M-1PFa
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> blockM (new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES));
+    int i_M;
+    for( int i=0 ; i<tempmap->Map().NumMyElements(); ++i ) { //loop on local pointing
+        cout << i << endl;
+        //build blockM
+        for (int j=0; j<dm->NSTOKES; ++j) {
+            for (int k=j; k<dm->NSTOKES; ++k) {
+                //i_M = dm->getIndexM(j, k);
+                //(*blockM)(j, k) = (*M)[i_M][i];
+                //(*blockM)(k, j) = (*M)[i_M][i];
+            }
+        }
+    }
+  
+    return true;
   }
 
   // other function
@@ -95,9 +121,11 @@ private:
     const Epetra_MultiVector * M;
     const Epetra_CrsMatrix * F;
     Epetra_Map Map_;
+    DataManager * dm;
     Epetra_Vector * tempvec;
     Epetra_Vector * tempvec2;
     Epetra_Vector * tempmap;
+    Epetra_MultiVector * summap;
 };
 
 int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
