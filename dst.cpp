@@ -378,7 +378,6 @@ Epetra_Vector baselines(BaselinesMap);
 //Operator
 Epetra_Operator * DOperator = new DestripingOperator(P, yqu, M, F, dm, BaselinesMap,tempvec, tempvec2, tempmap, summap);
 
-
 time.ResetStartTime();
 // Create Linear Problem
 Epetra_LinearProblem problem(&D, &baselines, &RHS);
@@ -405,7 +404,6 @@ for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
 
 //cout << destripedTOD << endl;
 cout << baselines << endl;
-
 DOperator->Apply(baselines, LHS);
 cout << RHS << endl;
 cout << LHS << endl;

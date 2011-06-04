@@ -31,40 +31,56 @@ using namespace std;
 class DestripingOperator : public Epetra_Operator
 {
 public:
-    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, const DataManager * dm, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
-        P(P), yqu(yqu), M(M), F(F), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
+    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, DataManager * dm, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
+        P(P), yqu(yqu), M(M), F(F), dm(dm), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
     {} 
 
     int Apply( const Epetra_MultiVector & X,
 	     Epetra_MultiVector & Y ) const
   {
     //Fa
-    F->Multiply(false,X,*tempvec); //baselines TOD
+    F->Multiply(false,X,*tempvec2); //baselines TOD
 
+    summap->PutScalar(0.);
     // PFa
     int qu_i=0;
     for (int i=1; i<3; ++i) { // Q=1 U=2
-        tempvec->Multiply(1., *tempvec, *((*yqu)(i)), 0.);
+        tempvec->Multiply(1., *tempvec2, *((*yqu)(i)), 0.);
         P->Multiply1(true,*tempvec,*tempmap); //SUMMAP = Pt y
         qu_i = i-1;
         (*summap)(qu_i)->Update(1., *tempmap, 1.);
     }
-    //M-1PFa
+    //M-1P-1Fa   BFa
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
     boost::scoped_ptr<Epetra_SerialDenseMatrix> blockM (new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES));
     int i_M;
     for( int i=0 ; i<tempmap->Map().NumMyElements(); ++i ) { //loop on local pointing
-        cout << i << endl;
         //build blockM
         for (int j=0; j<dm->NSTOKES; ++j) {
             for (int k=j; k<dm->NSTOKES; ++k) {
-                //i_M = dm->getIndexM(j, k);
-                //(*blockM)(j, k) = (*M)[i_M][i];
-                //(*blockM)(k, j) = (*M)[i_M][i];
+                i_M = dm->getIndexM(j, k);
+                (*blockM)(j, k) = (*M)[i_M][i];
+                (*blockM)(k, j) = (*M)[i_M][i];
             }
         }
+        for (int j=0; j<dm->NSTOKES; ++j) {
+            (*PixelArray)(j, 0) = (*summap)[j][i];
+        }
+        blockM->Apply(*PixelArray, *WeightedPixelArray);
+        for (int j=0; j<dm->NSTOKES; ++j) {
+            (*summap)[j][i] = (*WeightedPixelArray)(j, 0);
+        }
     }
-  
-    return true;
+    // Fa - PBFa
+    // Q
+    P->Multiply(false, *((*summap)(0)), *tempvec);
+    tempvec2->Multiply(-1., *((*yqu)(1)), *tempvec, 1.);
+    // U
+    P->Multiply(false, *((*summap)(1)), *tempvec);
+    tempvec2->Multiply(-1., *((*yqu)(2)), *tempvec, 1.);
+    // F-1(Fa - PBFa)
+    F->Multiply(true,*tempvec2,Y);
   }
 
   // other function
