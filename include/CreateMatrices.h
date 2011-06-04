@@ -42,7 +42,7 @@ public:
     F->Multiply(false,X,*tempvec2); //baselines TOD
 
     summap->PutScalar(0.);
-    // PFa
+    //// PFa
     int qu_i=0;
     for (int i=1; i<3; ++i) { // Q=1 U=2
         tempvec->Multiply(1., *tempvec2, *((*yqu)(i)), 0.);
@@ -51,9 +51,10 @@ public:
         (*summap)(qu_i)->Update(1., *tempmap, 1.);
     }
     //M-1P-1Fa   BFa
-    boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
-    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
-    boost::scoped_ptr<Epetra_SerialDenseMatrix> blockM (new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES));
+    cout << dm->NSTOKES << endl;
+    Epetra_SerialDenseMatrix * PixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    Epetra_SerialDenseMatrix * WeightedPixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    Epetra_SerialDenseMatrix * blockM = new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES);
     int i_M;
     for( int i=0 ; i<tempmap->Map().NumMyElements(); ++i ) { //loop on local pointing
         //build blockM
@@ -81,6 +82,7 @@ public:
     tempvec2->Multiply(-1., *((*yqu)(2)), *tempvec, 1.);
     // F-1(Fa - PBFa)
     F->Multiply(true,*tempvec2,Y);
+    //Y.PutScalar(1.);
   }
 
   // other function
@@ -92,6 +94,7 @@ public:
   int ApplyInverse( const Epetra_MultiVector & X,
 		    Epetra_MultiVector & Y ) const
   {
+     cout << "CALLING APPLY INVERSE" << endl;
     return(-1); // not implemented
   }
 
@@ -112,7 +115,7 @@ public:
 
   bool HasNormInf () const
   {
-    return(true);
+    return(false);
   }
   
   

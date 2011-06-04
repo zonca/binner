@@ -380,14 +380,17 @@ Epetra_Operator * DOperator = new DestripingOperator(P, yqu, M, F, dm, Baselines
 
 time.ResetStartTime();
 // Create Linear Problem
-Epetra_LinearProblem problem(&D, &baselines, &RHS);
+Epetra_LinearProblem problem(DOperator, &baselines, &RHS);
+//Epetra_LinearProblem problem(&D, &baselines, &RHS);
 // Create AztecOO instance
 AztecOO solver(problem);
-
+//
 int options[AZ_OPTIONS_SIZE];
 double params[AZ_PARAMS_SIZE];
-AZ_defaults(options, params);
-solver.SetAllAztecOptions( options );
+//AZ_defaults(options, params);
+//solver.SetAllAztecOptions( options );
+solver.SetAztecOption( AZ_solver, AZ_cg );
+solver.SetAztecOption( AZ_precond, AZ_none );
 solver.Iterate(100, 1.0E-10);
 
 cout << "Solver performed " << solver.NumIters() << " iterations." << endl
