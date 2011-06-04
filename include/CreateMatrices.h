@@ -33,7 +33,11 @@ class DestripingOperator : public Epetra_Operator
 public:
     DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, DataManager * dm, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
         P(P), yqu(yqu), M(M), F(F), dm(dm), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
-    {} 
+    { 
+    PixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    WeightedPixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    blockM = new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES);
+}
 
     int Apply( const Epetra_MultiVector & X,
 	     Epetra_MultiVector & Y ) const
@@ -52,9 +56,6 @@ public:
     }
     //M-1P-1Fa   BFa
     cout << dm->NSTOKES << endl;
-    Epetra_SerialDenseMatrix * PixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
-    Epetra_SerialDenseMatrix * WeightedPixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
-    Epetra_SerialDenseMatrix * blockM = new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES);
     int i_M;
     for( int i=0 ; i<tempmap->Map().NumMyElements(); ++i ) { //loop on local pointing
         //build blockM
@@ -83,6 +84,7 @@ public:
     // F-1(Fa - PBFa)
     F->Multiply(true,*tempvec2,Y);
     //Y.PutScalar(1.);
+    //delete WeightedPixelArray, PixelArray, blockM;
   }
 
   // other function
@@ -145,6 +147,9 @@ private:
     Epetra_Vector * tempvec2;
     Epetra_Vector * tempmap;
     Epetra_MultiVector * summap;
+    Epetra_SerialDenseMatrix * PixelArray;
+    Epetra_SerialDenseMatrix * blockM;
+    Epetra_SerialDenseMatrix * WeightedPixelArray;
 };
 
 int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
