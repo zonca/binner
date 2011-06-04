@@ -83,10 +83,10 @@ Epetra_Vector * hitmap = new Epetra_Vector(PixMap);
 Epetra_CrsMatrix * P;
 Epetra_CrsGraph * Graph; 
 
-Epetra_MultiVector yqu = Epetra_MultiVector(Map, 3);
+Epetra_MultiVector * yqu = new Epetra_MultiVector(Map, 3);
 
 double ** yqu_view = new double *[3];
-yqu.ExtractView(&yqu_view);
+yqu->ExtractView(&yqu_view);
 
 string LABEL[3] = {"I", "Q", "U"};
 
@@ -134,7 +134,7 @@ time.ResetStartTime();
 ////// I
 if (hasI) {
     log(MyPID,"I");
-    P->Multiply1(true,*(yqu(0)),tempmap); //SUMMAP = Pt y
+    P->Multiply1(true,*((*yqu)(0)),tempmap); //SUMMAP = Pt y
     summap(0)->Update(weight, tempmap, 1.);
     log(MyPID, format("%f") % time.ElapsedTime());
 }
@@ -154,7 +154,7 @@ delete hitmap;
 log(MyPID,"QU");
 int qu_i=0;
 for (int i=1; i<3; ++i) { // Q=1 U=2
-    tempvec.Multiply(1., *(yqu(0)), *(yqu(i)), 0.);
+    tempvec.Multiply(1., *((*yqu)(0)), *((*yqu)(i)), 0.);
     P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
     if (hasI) {
         qu_i = i;
@@ -175,9 +175,9 @@ if (hasI) {
             if (k == 0) { //also j=0
                 tempvec.PutScalar(1.);
             } else if (j == 0 ) {
-                tempvec.Update(1., *(yqu(k)), 0.);
+                tempvec.Update(1., *((*yqu)(k)), 0.);
             } else {
-                tempvec.Multiply(1., *(yqu(j)), *(yqu(k)), 0.);
+                tempvec.Multiply(1., *((*yqu)(j)), *((*yqu)(k)), 0.);
             }
             P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
             i_M = dm->getIndexM(j, k);
@@ -189,7 +189,7 @@ if (hasI) {
     for (int j=0; j<2; ++j) {
         for (int k=j; k<2; ++k) {
             log(MyPID,format("M %d %d") % j % k);
-            tempvec.Multiply(1., *(yqu(j+1)), *(yqu(k+1)), 0.);
+            tempvec.Multiply(1., *((*yqu)(j+1)), *((*yqu)(k+1)), 0.);
             i_M = dm->getIndexM(j, k);
             P->Multiply1(true,tempvec,tempmap); //SUMMAP = Pt y
             log(MyPID, format("Setting M %d") % i_M );
@@ -272,7 +272,7 @@ time.ResetStartTime();
 //            } else {
 //                ScalarMultiplier = 1.;
 //            }
-//            tempvec.Multiply(ScalarMultiplier, *(yqu(j+1)), *(yqu(k+1)), 0.);
+//            tempvec.Multiply(ScalarMultiplier, *((*yqu)(j+1)), *((*yqu)(k+1)), 0.);
 //            i_M = dm->getIndexM(j, k);
 //            tempvec2.Multiply(1., tempvec, *(M_time(i_M)), 1.);
 //            log(MyPID, format("Setting M %d") % i_M );
@@ -280,13 +280,13 @@ time.ResetStartTime();
 //    }
 //    Z.LeftScale(tempvec2); //by row
 //}
-Z.LeftScale(*(yqu(1))); //by row
-tempvec.Multiply(1., *(yqu(1)), *(M_time(0)), 0.);
-tempvec.Multiply(1., *(yqu(2)), *(M_time(1)), 1.);
+Z.LeftScale(*((*yqu)(1))); //by row
+tempvec.Multiply(1., *((*yqu)(1)), *(M_time(0)), 0.);
+tempvec.Multiply(1., *((*yqu)(2)), *(M_time(1)), 1.);
 Z.RightScale(tempvec); //by col
-Z2.LeftScale(*(yqu(2))); //by row
-tempvec.Multiply(1., *(yqu(1)), *(M_time(1)), 0.);
-tempvec.Multiply(1., *(yqu(2)), *(M_time(2)), 1.);
+Z2.LeftScale(*((*yqu)(2))); //by row
+tempvec.Multiply(1., *((*yqu)(1)), *(M_time(1)), 0.);
+tempvec.Multiply(1., *((*yqu)(2)), *(M_time(2)), 1.);
 Z2.RightScale(tempvec); //by col
 log(MyPID, format("%f") % time.ElapsedTime());
 
@@ -352,7 +352,7 @@ log(Comm.MyPID(),"----------------Creating RHS n_base");
 
 time.ResetStartTime();
 Epetra_Vector RHS(BaselinesMap);
-FZT.Multiply(true,*(yqu(0)),RHS);
+FZT.Multiply(true,*((*yqu)(0)),RHS);
 
 log(MyPID, format("%f") % time.ElapsedTime());
 log(Comm.MyPID(),"----------------Creating D n_base x n_base");
@@ -394,17 +394,18 @@ Epetra_Vector destripedTOD(Map);
 F.Multiply(false,baselines,destripedTOD);
 
 for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
-    destripedTOD[i] = yqu[0][i] - destripedTOD[i];
+    destripedTOD[i] = (*yqu)[0][i] - destripedTOD[i];
 }
 
 //cout << destripedTOD << endl;
+cout << baselines << endl;
 
 log(MyPID,"Writing DESTRIPED");
 time.ResetStartTime();
 log(MyPID, format("%f") % time.ElapsedTime());
 for (int j=0; j<dm->NSTOKES; ++j) {
-    tempvec.Multiply(1., *(yqu(1)), *(M_time(j)), 0.);
-    tempvec.Multiply(1., *(yqu(2)), *(M_time(j+1)), 1.);
+    tempvec.Multiply(1., *((*yqu)(1)), *(M_time(j)), 0.);
+    tempvec.Multiply(1., *((*yqu)(2)), *(M_time(j+1)), 1.);
     for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
         tempvec[i] *= destripedTOD[i];
     }

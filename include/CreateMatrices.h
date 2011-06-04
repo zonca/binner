@@ -21,11 +21,19 @@
 #include "Epetra_SerialDenseMatrix.h"
 #include <Epetra_SerialDenseSolver.h>
 #include "Epetra_Time.h"
+#include "Epetra_Operator.h"
 
 #include "DataManager.h"
 #include "Utils.h"
 
 using namespace std;
+
+//class DestripingOperator : public Epetra_Operator
+//{
+//public:
+//    DestripingOperator(const Epetra_CrsMatrix * P)
+//    {} 
+//}
 
 int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
 
