@@ -294,29 +294,23 @@ cout << "Solver performed " << solver.NumIters() << " iterations." << endl
 
 log(MyPID, format("%f") % time.ElapsedTime());
 
-Epetra_Vector destripedTOD(Map);
-F->Multiply(false,baselines,destripedTOD);
+F->Multiply(false,baselines,*tempvec);
 
 for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
-    destripedTOD[i] = (*yqu)[0][i] - destripedTOD[i];
+    (*tempvec)[i] = (*yqu)[0][i] - (*tempvec)[i];
 }
 
-//cout << destripedTOD << endl;
 cout << baselines << endl;
 
-//log(MyPID,"Writing DESTRIPED");
-//time.ResetStartTime();
-//log(MyPID, format("%f") % time.ElapsedTime());
-//for (int j=0; j<dm->NSTOKES; ++j) {
-//    tempvec.Multiply(1., *((*yqu)(1)), *(M_time(j)), 0.);
-//    tempvec.Multiply(1., *((*yqu)(2)), *(M_time(j+1)), 1.);
-//    for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
-//        tempvec[i] *= destripedTOD[i];
-//    }
-//    P->Multiply(true, tempvec, tempmap);
-//    //cout << tempmap << endl;
-//    WriteH5Vec(&tempmap, "destripedmap_" + LABEL[j], dm->outputFolder);
-//}
+log(MyPID,"Writing DESTRIPED");
+time.ResetStartTime();
+log(MyPID, format("%f") % time.ElapsedTime());
+
+SumMap(P, dm, tempvec, yqu, summap);
+WeightMap(M, dm, summap);
+for (int j=0; j<dm->NSTOKES; ++j) {
+    WriteH5Vec((*summap)(j), "destripedmap_" + LABEL[j], dm->outputFolder);
+}
 
 #ifdef HAVE_MPI
   MPI_Finalize();
