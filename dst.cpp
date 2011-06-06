@@ -72,7 +72,6 @@ int NumMyElements = dm->adjustDistribution(LinearMap.MinMyGID(), LinearMap.NumMy
 Epetra_Map Map(dm->getLength(), NumMyElements, 0, Comm);
 
 Epetra_Map PixMap(dm->getNPIX(),0,Comm);
-Epetra_BlockMap PixBlockMap(dm->getNPIX(),dm->NSTOKES,0,Comm);
 
 // declaring matrices
 log(MyPID,"POINTING MATRIX");
@@ -237,78 +236,6 @@ for (int j=0; j<dm->NSTOKES; ++j) {
 log(MyPID, format("%f") % time.ElapsedTime());
 
 //Destriping
-log(MyPID,"M_time");
-Epetra_MultiVector M_time(Map, Msize);
-P->Multiply(false, *M, M_time);
-log(MyPID, format("%f") % time.ElapsedTime());
-
-log(MyPID,"Z");
-Epetra_CrsMatrix Z(Copy, Map, 70);
-EpetraExt::MatrixMatrix::Multiply(*P, false, *P, true, Z);
-log(MyPID, format("%f") % time.ElapsedTime());
-log(MyPID,"Z2");
-Epetra_CrsMatrix Z2(Z);
-
-log(MyPID,"Z weighting");
-time.ResetStartTime();
-//if (hasI) {
-//    cout << "NOTIMPLEMENTED" << endl;
-//} else {
-//    for (int i=0; i<NumMyElements;i++) {
-//        NumMyEntries = Z.NumMyEntries(i);
-//        Z.ExtractMyRowView(i, NumEntries, Values, Indices)
-//        for (int c=0; c<NumEntries; c++) {
-//            GlobalCol = Z.GCID(Indices[c]);
-//            Values[c] += qw
-//
-//    }
-//
-//    tempvec2.PutScalar(0.);
-//    Z.PutScalar(0.);
-//    for (int j=0; j<2; ++j) {
-//        for (int k=j; k<2; ++k) {
-//            log(MyPID,format("M %d %d") % j % k);
-//            if (k != j) { //cross terms must be doubled
-//                ScalarMultiplier = 2.;
-//            } else {
-//                ScalarMultiplier = 1.;
-//            }
-//            tempvec.Multiply(ScalarMultiplier, *((*yqu)(j+1)), *((*yqu)(k+1)), 0.);
-//            i_M = dm->getIndexM(j, k);
-//            tempvec2.Multiply(1., tempvec, *(M_time(i_M)), 1.);
-//            log(MyPID, format("Setting M %d") % i_M );
-//        }
-//    }
-//    Z.LeftScale(tempvec2); //by row
-//}
-Z.LeftScale(*((*yqu)(1))); //by row
-tempvec->Multiply(1., *((*yqu)(1)), *(M_time(0)), 0.);
-tempvec->Multiply(1., *((*yqu)(2)), *(M_time(1)), 1.);
-Z.RightScale(*tempvec); //by col
-Z2.LeftScale(*((*yqu)(2))); //by row
-tempvec->Multiply(1., *((*yqu)(1)), *(M_time(1)), 0.);
-tempvec->Multiply(1., *((*yqu)(2)), *(M_time(2)), 1.);
-Z2.RightScale(*tempvec); //by col
-log(MyPID, format("%f") % time.ElapsedTime());
-
-int NumEntries;
-for (int i=0; i<NumMyElements;i++) {
-    NumEntries = Z.NumMyEntries(i);
-    for (int c=0; c<NumEntries; c++) {
-        Z[i][c] += Z2[i][c];
-    }
-}
-
-log(Comm.MyPID(),"1-PB");
-Z.Scale(-1);
-Epetra_Vector diagZ(Map);
-Z.ExtractDiagonalCopy(diagZ);
-for(unsigned int i=0; i<Map.NumMyElements(); ++i) {
-        diagZ[i] = 1. + diagZ[i];
-}
-Z.ReplaceDiagonalValues(diagZ);
-
-//cout << Z << endl;
 
 //Create F
 log(Comm.MyPID(),"----------------Creating F n_base * time");
@@ -335,40 +262,8 @@ for(unsigned int i=0 ; i<BaselinesMap.NumMyElements(); ++i ) { //loop on local b
 }
 F->FillComplete(BaselinesMap, Map);
 
-log(MyPID, format("%f") % time.ElapsedTime());
-log(Comm.MyPID(),"----------------Creating FZT n_base * time");
-time.ResetStartTime();
-Epetra_CrsMatrix FZT(Copy, Map,10);
-
-log(Comm.MyPID(),"M-M");
-err = EpetraExt::MatrixMatrix::Multiply(Z, true, *F, false, FZT); 
-log(Comm.MyPID(),"M-M END");
-if (err != 0) {
-    cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
-    return(err);
-}
-
-log(MyPID, format("%f") % time.ElapsedTime());
-log(Comm.MyPID(),"----------------Creating RHS n_base");
-
 time.ResetStartTime();
 Epetra_Vector RHS(BaselinesMap);
-Epetra_Vector LHS(BaselinesMap);
-FZT.Multiply(true,*((*yqu)(0)),RHS);
-
-log(MyPID, format("%f") % time.ElapsedTime());
-log(Comm.MyPID(),"----------------Creating D n_base x n_base");
-
-time.ResetStartTime();
-Epetra_CrsMatrix D(Copy, BaselinesMap, 30);
-
-log(Comm.MyPID(),"M-M");
-err = EpetraExt::MatrixMatrix::Multiply(FZT, true, *F, false, D); 
-log(Comm.MyPID(),"M-M END");
-if (err != 0) {
-    cout << "err "<<err<<" from MatrixMatrix::Multiply"<<endl;
-    return(err);
-}
 
 log(MyPID, format("%f") % time.ElapsedTime());
 
@@ -376,7 +271,8 @@ log(MyPID, format("%f") % time.ElapsedTime());
 Epetra_Vector baselines(BaselinesMap);
 
 //Operator
-Epetra_Operator * DOperator = new DestripingOperator(P, yqu, M, F, dm, BaselinesMap,tempvec, tempvec2, tempmap, summap);
+DestripingOperator * DOperator = new DestripingOperator(P, yqu, M, F, dm, BaselinesMap,tempvec, tempvec2, tempmap, summap);
+DOperator->EstimateNoise((*yqu)(0), RHS);
 
 time.ResetStartTime();
 // Create Linear Problem
@@ -407,9 +303,6 @@ for(unsigned int i=0 ; i<Map.NumMyElements(); ++i ) { //loop on local elements
 
 //cout << destripedTOD << endl;
 cout << baselines << endl;
-DOperator->Apply(baselines, LHS);
-cout << RHS << endl;
-cout << LHS << endl;
 
 //log(MyPID,"Writing DESTRIPED");
 //time.ResetStartTime();

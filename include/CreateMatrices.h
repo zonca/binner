@@ -28,36 +28,27 @@
 
 using namespace std;
 
-class DestripingOperator : public Epetra_Operator
-{
-public:
-    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, DataManager * dm, Epetra_Map BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
-        P(P), yqu(yqu), M(M), F(F), dm(dm), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
-    { 
-    PixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
-    WeightedPixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
-    blockM = new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES);
-}
 
-    int Apply( const Epetra_MultiVector & X,
-	     Epetra_MultiVector & Y ) const
-  {
-    //Fa
-    F->Multiply(false,X,*tempvec2); //baselines TOD
-
+int SumMap(const Epetra_CrsMatrix * P, const DataManager * dm, const Epetra_MultiVector * TOD, const Epetra_MultiVector * yqu, Epetra_MultiVector * summap, Epetra_Vector * tempvec, Epetra_Vector * tempmap) {
     summap->PutScalar(0.);
-    //// PFa
     int qu_i=0;
     for (int i=1; i<3; ++i) { // Q=1 U=2
-        tempvec->Multiply(1., *tempvec2, *((*yqu)(i)), 0.);
+        tempvec->Multiply(1., *TOD, *((*yqu)(i)), 0.);
         P->Multiply1(true,*tempvec,*tempmap); //SUMMAP = Pt y
         qu_i = i-1;
         (*summap)(qu_i)->Update(1., *tempmap, 1.);
     }
-    //M-1P-1Fa   BFa
-    cout << dm->NSTOKES << endl;
+}
+
+int SumMap(const Epetra_CrsMatrix * P, const DataManager * dm, const Epetra_MultiVector * TOD, const Epetra_MultiVector * yqu, Epetra_MultiVector * summap) {
+    boost::scoped_ptr<Epetra_Vector> tempvec (new Epetra_Vector(yqu->Map()));
+    boost::scoped_ptr<Epetra_Vector> tempmap (new Epetra_Vector(summap->Map()));
+    SumMap(P, dm, TOD, yqu, summap, tempvec.get(), tempmap.get());
+}
+
+int WeightMap(const Epetra_MultiVector * M, DataManager * dm, Epetra_MultiVector * summap, Epetra_SerialDenseMatrix * blockM, Epetra_SerialDenseMatrix * PixelArray, Epetra_SerialDenseMatrix * WeightedPixelArray) {
     int i_M;
-    for( int i=0 ; i<tempmap->Map().NumMyElements(); ++i ) { //loop on local pointing
+    for( int i=0 ; i<summap->Map().NumMyElements(); ++i ) { //loop on local pointing
         //build blockM
         for (int j=0; j<dm->NSTOKES; ++j) {
             for (int k=j; k<dm->NSTOKES; ++k) {
@@ -74,18 +65,35 @@ public:
             (*summap)[j][i] = (*WeightedPixelArray)(j, 0);
         }
     }
-    // Fa - PBFa
-    // Q
-    P->Multiply(false, *((*summap)(0)), *tempvec);
-    tempvec2->Multiply(-1., *((*yqu)(1)), *tempvec, 1.);
-    // U
-    P->Multiply(false, *((*summap)(1)), *tempvec);
-    tempvec2->Multiply(-1., *((*yqu)(2)), *tempvec, 1.);
-    // F-1(Fa - PBFa)
-    F->Multiply(true,*tempvec2,Y);
-    //Y.PutScalar(1.);
-    //delete WeightedPixelArray, PixelArray, blockM;
-  }
+}
+
+int WeightMap(const Epetra_MultiVector * M, DataManager * dm, Epetra_MultiVector * summap) {
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> blockM (new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> PixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
+    boost::scoped_ptr<Epetra_SerialDenseMatrix> WeightedPixelArray (new Epetra_SerialDenseMatrix(dm->NSTOKES, 1));
+    WeightMap(M, dm, summap, blockM.get(), PixelArray.get(), WeightedPixelArray.get());
+}
+
+class DestripingOperator : public Epetra_Operator
+{
+public:
+    DestripingOperator(const Epetra_CrsMatrix * P, const Epetra_MultiVector * yqu, const Epetra_MultiVector * M, const Epetra_CrsMatrix * F, DataManager * dm, Epetra_Map & BaselinesMap, Epetra_Vector * tempvec, Epetra_Vector * tempvec2, Epetra_Vector * tempmap, Epetra_MultiVector * summap):
+        P(P), yqu(yqu), M(M), F(F), dm(dm), Map_(BaselinesMap), tempvec(tempvec), tempvec2(tempvec2), tempmap(tempmap), summap(summap)
+    { 
+    PixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    WeightedPixelArray = new Epetra_SerialDenseMatrix(dm->NSTOKES, 1);
+    blockM = new Epetra_SerialDenseMatrix(dm->NSTOKES, dm->NSTOKES);
+}
+
+    int EstimateNoise( Epetra_MultiVector * TOD, Epetra_MultiVector & Y ) const;
+
+    int Apply( const Epetra_MultiVector & X,
+	     Epetra_MultiVector & Y ) const
+        {
+        //Fa
+        F->Multiply(false,X,*tempvec2); //baselines TOD
+        EstimateNoise(tempvec2, Y);
+        }
 
   // other function
   int SetUseTranspose( bool UseTranspose) 
@@ -151,6 +159,26 @@ private:
     Epetra_SerialDenseMatrix * blockM;
     Epetra_SerialDenseMatrix * WeightedPixelArray;
 };
+
+int DestripingOperator::EstimateNoise( Epetra_MultiVector * TOD,
+	     Epetra_MultiVector & Y ) const
+  {
+    //// PFa
+    SumMap(P, dm, TOD, yqu, summap, tempvec, tempmap);
+    //M-1P-1Fa   BFa
+    cout << dm->NSTOKES << endl;
+    WeightMap(M, dm, summap, blockM, PixelArray, WeightedPixelArray);
+    // Fa - PBFa
+    // Q
+    P->Multiply(false, *((*summap)(0)), *tempvec);
+    TOD->Multiply(-1., *((*yqu)(1)), *tempvec, 1.);
+    // U
+    P->Multiply(false, *((*summap)(1)), *tempvec);
+    TOD->Multiply(-1., *((*yqu)(2)), *tempvec, 1.);
+    // F-1(Fa - PBFa)
+    F->Multiply(true,*TOD,Y);
+  }
+
 
 int createGraph(const Epetra_Map& Map, const Epetra_Map& PixMap, const Epetra_Vector & pix, Epetra_CrsGraph* &Graph) {
 
