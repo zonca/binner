@@ -166,7 +166,6 @@ int DestripingOperator::EstimateNoise( Epetra_MultiVector * TOD,
     //// PFa
     SumMap(P, dm, TOD, yqu, summap, tempvec, tempmap);
     //M-1P-1Fa   BFa
-    cout << dm->NSTOKES << endl;
     WeightMap(M, dm, summap, blockM, PixelArray, WeightedPixelArray);
     // Fa - PBFa
     // Q
