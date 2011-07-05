@@ -129,6 +129,14 @@ void invertM(const Epetra_Map& PixMap, H5PlanckDataManager* dm, Epetra_MultiVect
         for (int j=0; j<dm->NSTOKES; ++j) {
             summap[j][i] = (*WeightedPixelArray)(j, 0);
         }
+
+        // set inverted values back to M
+        for (int j=0; j<dm->NSTOKES; ++j) {
+            for (int k=j; k<dm->NSTOKES; ++k) {
+                i_M = dm->getIndexM(j, k);
+                M[i_M][i] = (*blockM)(j, k);
+            }
+        }
         
     }
 }

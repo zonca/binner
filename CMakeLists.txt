@@ -11,8 +11,7 @@ if ($ENV{NERSC_HOST} STREQUAL carver)
 elseif ($ENV{NERSC_HOST} STREQUAL hopper)
 
     include_directories("../include" "./include" "/opt/cray/trilinos/10.6.2.0/PGI/include/" "/usr/common/usg/boost/1.45" )
-    link_directories("/opt/cray/trilinos/10.6.2.0/PGI/lib")
-
+    link_directories( "/opt/cray/trilinos/10.6.2.0/PGI/lib/" )
 
 elseif ($ENV{NERSC_HOST} STREQUAL canopus)
 
@@ -30,7 +29,6 @@ if ($ENV{NERSC_HOST} STREQUAL carver)
 elseif($ENV{NERSC_HOST} STREQUAL hopper)
     #set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
     #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
-
     target_link_libraries(binner H5PlanckDataManager epetra teuchos hdf5 hdf5_cpp)
 elseif($ENV{NERSC_HOST} STREQUAL canopus)
     target_link_libraries(binner H5PlanckDataManager trilinos_epetra hdf5 hdf5_cpp)
