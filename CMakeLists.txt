@@ -8,11 +8,12 @@ if ($ENV{NERSC_HOST} STREQUAL carver)
 
     link_directories("/global/common/carver/acts/Trilinos/10.4.0/linux8c_g/lib" "/project/projectdirs/cmb/modules/carver/gnu/cmb/2.4.2/cfitsio_3.0.6-2.4.2/lib" "/usr/common/usg/openmpi/1.4.2/gnu/lib" "/usr/common/usg/mkl/10.2.2.025/lib/em64t")
 
-elseif ($ENV{NERSC_HOST} STREQUAL hopper2)
+elseif ($ENV{NERSC_HOST} STREQUAL hopper)
 
     include_directories("../include" "./include" "/opt/cray/trilinos/10.6.2.0/PGI/include/" "/usr/common/usg/boost/1.45" )
-
     link_directories("/opt/cray/trilinos/10.6.2.0/PGI/lib")
+
+
 elseif ($ENV{NERSC_HOST} STREQUAL canopus)
 
     include_directories("../include" "./include" "/usr/include/trilinos/" "/usr/include/openmpi")
@@ -26,7 +27,7 @@ add_executable(binner binner.cpp)
 
 if ($ENV{NERSC_HOST} STREQUAL carver)
     target_link_libraries(binner PlanckDataManager read_fits_lib cfitsio epetra aztecoo teuchos epetraext mpi_cxx mkl_intel_lp64 mkl_sequential mkl_core iomp5)
-elseif($ENV{NERSC_HOST} STREQUAL hopper2)
+elseif($ENV{NERSC_HOST} STREQUAL hopper)
     #set_target_properties(binner PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
     #set_target_properties(testFEVbr PROPERTIES LINK_FLAGS "-pgf90libs -pgf77libs")
 

@@ -20,7 +20,7 @@ STOKES = ['I','Q','U']
 for i in range(1,6+1):
     STOKES.append('S%d' % i)
 
-maps = []
+maps = ['binmap']
 for h in range(18, 28+1):
     maps.append('binmap_LFI%dM' % h)
 
@@ -28,9 +28,9 @@ for map in maps:
     for S in STOKES:
         types.append('_'.join([map, S]))
 
-for i in range(len(STOKES)):
-    for j in range(i, len(STOKES)):
-        types.append('_'.join(['M',STOKES[i], STOKES[j]]))
+#for i in range(len(STOKES)):
+#    for j in range(i, len(STOKES)):
+#        types.append('_'.join(['M',STOKES[i], STOKES[j]]))
 
 for type in types:
     print(type)
